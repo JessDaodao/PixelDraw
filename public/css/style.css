@@ -35,16 +35,16 @@ canvas {
 
 .quota-circle {
     position: relative;
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
     border-radius: 50%;
 }
 
 .quota-progress {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     transform: rotate(-90deg);
 }
 
@@ -72,8 +72,8 @@ canvas {
     opacity: 0;
 }
 
-.bottom-center {
-    bottom: 20px;
+.top-center {
+    top: 7px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -85,16 +85,17 @@ canvas {
 
 #status {
     background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     color: white;
-    padding: 10px 20px;
+    padding: 8px 14px;
     font-size: 14px;
     pointer-events: auto;
     backdrop-filter: blur(10px);
     border-radius: 30px;
     opacity: 0;
-    transform: scale(0.9);
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-3px);
+    filter: blur(2px);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     font-weight: 500;
     letter-spacing: 0.5px;
@@ -102,12 +103,13 @@ canvas {
 
 #status.show {
     opacity: 1;
-    transform: scale(1);
+    filter: blur(0px);
+    transform: translateY(0px);
 }
 
 #status.hide {
     opacity: 0;
-    transform: scale(0.95);
+    filter: blur(2px);
 }
 
 #status.status-success {
@@ -214,10 +216,6 @@ canvas {
     pointer-events: none;
 }
 
-#status {
-    font-size: 14px;
-}
-
 #customColorPicker {
     width: 24px;
     height: 24px;
@@ -294,5 +292,13 @@ canvas {
     100% {
         transform: rotate(360deg);
         border-color: #ffe600;
+    }
+}
+
+@media (max-width: 768px) {
+    .bottom-left {
+        left: 48%;
+        transform: translateX(-50%) scale(1.2);
+        align-items: center;
     }
 }

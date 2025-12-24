@@ -51,6 +51,7 @@ function resizeCanvas() {
         offsetY = (canvas.height - BOARD_HEIGHT * scale) / 2;
     }
     render();
+    renderColorPresets();
 }
 
 function render() {
@@ -246,7 +247,10 @@ function renderColorPresets() {
     
     colorPicker.style.display = 'flex';
     
-    colorPresets.forEach((color, index) => {
+    const isMobile = window.innerWidth <= 768;
+    const maxColors = isMobile ? 6 : colorPresets.length;
+    
+    colorPresets.slice(0, maxColors).forEach((color, index) => {
         const btn = document.createElement('div');
         btn.className = 'color-btn';
         btn.style.background = color;
