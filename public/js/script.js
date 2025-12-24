@@ -1,0 +1,401 @@
+const socket = io();
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const quotaSpan = document.getElementById('quota');
+const recoveryProgressBar = document.getElementById('recoveryProgressBar');
+const statusDiv = document.getElementById('status');
+
+let BOARD_WIDTH;
+let BOARD_HEIGHT;
+let board = [];
+let selectedColor = '#000000';
+let isEraserSelected = false;
+let MIN_ZOOM;
+let MAX_ZOOM;
+
+const COLOR_PRESETS_KEY = 'pixelDraw_colorPresets';
+const MAX_COLOR_PRESETS = 10;
+let colorPresets = [];
+
+let scale;
+let offsetX = 0;
+let offsetY = 0;
+let isDragging = false;
+let lastMousePos = { x: 0, y: 0 };
+
+let pixelRecoveryInterval;
+let currentQuota = 10;
+let maxQuota;
+let recoveryCountdown = 0;
+
+window.addEventListener('resize', resizeCanvas);
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (offsetX === 0 && offsetY === 0) {
+        const optimalScale = Math.min(
+            (canvas.width * 0.8) / BOARD_WIDTH,
+            (canvas.height * 0.8) / BOARD_HEIGHT
+        );
+        scale = Math.max(MIN_ZOOM, Math.min(optimalScale, MAX_ZOOM));
+        offsetX = (canvas.width - BOARD_WIDTH * scale) / 2;
+        offsetY = (canvas.height - BOARD_HEIGHT * scale) / 2;
+    }
+    render();
+}
+
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+
+    board.forEach((row, y) => {
+        if (y < BOARD_HEIGHT) {
+            row.forEach((color, x) => {
+                if (x < BOARD_WIDTH && color !== '#FFFFFF') {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            });
+        }
+    });
+
+    if (scale > 10) {
+        ctx.lineWidth = 0.05;
+        ctx.strokeStyle = "#ccc";
+        for (let i = 0; i <= BOARD_WIDTH; i++) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, BOARD_HEIGHT); ctx.stroke();
+        }
+        for (let i = 0; i <= BOARD_HEIGHT; i++) {
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(BOARD_WIDTH, i); ctx.stroke();
+        }
+    }
+    ctx.restore();
+}
+
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomSpeed = 0.1;
+    const delta = -Math.sign(e.deltaY);
+    
+    const isAtMaxZoom = scale >= MAX_ZOOM && delta > 0;
+    const isAtMinZoom = scale <= MIN_ZOOM && delta < 0;
+    
+    if (isAtMaxZoom || isAtMinZoom) {
+        return;
+    }
+    
+    const zoom = Math.exp(delta * zoomSpeed);
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+
+    offsetX = mouseX - (mouseX - offsetX) * zoom;
+    offsetY = mouseY - (mouseY - offsetY) * zoom;
+    scale *= zoom;
+
+    scale = Math.min(Math.max(scale, MIN_ZOOM), MAX_ZOOM);
+    render();
+}, { passive: false });
+
+canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+        const worldX = Math.floor((e.clientX - offsetX) / scale);
+        const worldY = Math.floor((e.clientY - offsetY) / scale);
+
+        if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+            const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
+            if (board[worldY] && board[worldY][worldX] === drawColor) {
+                return;
+            }
+            socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+        }
+    } else {
+        isDragging = true;
+        lastMousePos = { x: e.clientX, y: e.clientY };
+    }
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+        offsetX += e.clientX - lastMousePos.x;
+        offsetY += e.clientY - lastMousePos.y;
+        lastMousePos = { x: e.clientX, y: e.clientY };
+        render();
+    }
+});
+
+window.addEventListener('mouseup', () => isDragging = false);
+canvas.oncontextmenu = (e) => e.preventDefault();
+
+socket.on('init-board', (data) => {
+    if (data.board) {
+        board = data.board;
+        BOARD_WIDTH = data.boardWidth || BOARD_WIDTH;
+        BOARD_HEIGHT = data.boardHeight || BOARD_HEIGHT;
+        MIN_ZOOM = data.minZoom || MIN_ZOOM;
+        MAX_ZOOM = data.maxZoom || MAX_ZOOM;
+        maxQuota = data.maxPixels || maxQuota;
+        resizeCanvas();
+    } else {
+        board = data;
+        resizeCanvas();
+    }
+    renderColorPresets();
+    
+    socket.emit('request-quota-update');
+    startPixelRecoveryTimer();
+});
+socket.on('pixel-update', ({ x, y, color }) => {
+    if (y >= 0 && y < BOARD_HEIGHT && x >= 0 && x < BOARD_WIDTH && board[y]) {
+        board[y][x] = color;
+    }
+    render();
+});
+socket.on('quota-update', (q, nextRefillTime) => { 
+    quotaSpan.innerText = q;
+    currentQuota = q;
+    
+    if (currentQuota >= maxQuota) {
+        stopPixelRecoveryTimer();
+        recoveryProgressBar.style.opacity = '0';
+        recoveryProgressBar.style.strokeDasharray = '0, 100';
+        recoveryCountdown = 0;
+    } else if (nextRefillTime) {
+        recoveryCountdown = nextRefillTime;
+        recoveryProgressBar.style.opacity = '1';
+        updateRecoveryProgress();
+        startRecoveryCountdown();
+    }
+});
+socket.on('error-message', (msg) => {
+    showStatus(msg, 'error');
+    
+    const match = msg.match(/(\d+)秒后/);
+    if (match) {
+        recoveryCountdown = parseInt(match[1]);
+        recoveryProgressBar.style.opacity = '1';
+        updateRecoveryProgress();
+        startRecoveryCountdown();
+    }
+});
+
+function loadColorPresets() {
+    const saved = localStorage.getItem(COLOR_PRESETS_KEY);
+    if (saved) {
+        try {
+            colorPresets = JSON.parse(saved);
+        } catch (e) {
+            colorPresets = [];
+        }
+    }
+}
+
+function saveColorPresets() {
+    localStorage.setItem(COLOR_PRESETS_KEY, JSON.stringify(colorPresets));
+}
+
+function addColorPreset(color) {
+    const existingIndex = colorPresets.indexOf(color);
+    if (existingIndex !== -1) {
+        colorPresets.splice(existingIndex, 1);
+    }
+    
+    colorPresets.unshift(color);
+    
+    if (colorPresets.length > MAX_COLOR_PRESETS) {
+        colorPresets = colorPresets.slice(0, MAX_COLOR_PRESETS);
+    }
+    
+    saveColorPresets();
+    renderColorPresets();
+    
+    selectColor(color);
+    
+    return existingIndex === -1;
+}
+
+function clearColorPresets() {
+    colorPresets = [];
+    saveColorPresets();
+    renderColorPresets();
+}
+
+function renderColorPresets() {
+    const colorPicker = document.getElementById('colorPicker');
+    
+    colorPicker.innerHTML = '';
+    
+    if (colorPresets.length === 0) {
+        colorPicker.style.display = 'none';
+        return;
+    }
+    
+    colorPicker.style.display = 'flex';
+    
+    colorPresets.forEach((color, index) => {
+        const btn = document.createElement('div');
+        btn.className = 'color-btn';
+        btn.style.background = color;
+        btn.dataset.color = color;
+        
+        if (index === 0 && selectedColor === color) {
+            btn.classList.add('selected');
+        }
+        
+        colorPicker.appendChild(btn);
+    });
+}
+
+function selectColor(color) {
+    selectedColor = color;
+    isEraserSelected = false;
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('customColorPicker').classList.remove('selected');
+    document.getElementById('eraser').classList.remove('selected');
+    
+    const targetBtn = document.querySelector(`[data-color="${color}"]`);
+    if (targetBtn) {
+        targetBtn.classList.add('selected');
+    } else {
+        document.getElementById('customColorPicker').classList.add('selected');
+    }
+    
+    document.getElementById('customColorPicker').value = color;
+}
+
+function selectEraser() {
+    isEraserSelected = true;
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('customColorPicker').classList.remove('selected');
+    document.getElementById('eraser').classList.add('selected');
+}
+
+loadColorPresets();
+
+if (colorPresets.length === 0) {
+    colorPresets = ['#000000'];
+    saveColorPresets();
+}
+
+if (colorPresets.length > 0) {
+    selectedColor = colorPresets[0];
+    document.getElementById('customColorPicker').value = selectedColor;
+}
+
+document.getElementById('customColorPicker').addEventListener('change', (e) => {
+    selectColor(e.target.value);
+});
+
+document.getElementById('addColorPreset').addEventListener('click', () => {
+    const color = selectedColor;
+    if (addColorPreset(color)) {
+        showStatus(`颜色 ${color} 已添加到预设`, 'success');
+    }
+});
+
+document.getElementById('colorPicker').addEventListener('click', (e) => {
+    if (e.target.dataset.color) {
+        selectColor(e.target.dataset.color);
+    }
+});
+
+document.getElementById('eraser').addEventListener('click', () => {
+    selectEraser();
+});
+
+function showStatus(message, type = 'info') {
+    const statusDiv = document.getElementById('status');
+    
+    if (statusDiv.hideTimeout) {
+        clearTimeout(statusDiv.hideTimeout);
+    }
+    
+    statusDiv.classList.remove('show', 'hide', 'status-success', 'status-error', 'status-warning');
+    
+    switch (type) {
+        case 'success':
+            statusDiv.classList.add('status-success');
+            break;
+        case 'error':
+            statusDiv.classList.add('status-error');
+            break;
+        case 'warning':
+            statusDiv.classList.add('status-warning');
+            break;
+    }
+    
+    void statusDiv.offsetWidth;
+    
+    statusDiv.innerText = message;
+    statusDiv.classList.add('show');
+    
+    statusDiv.hideTimeout = setTimeout(() => {
+        statusDiv.classList.add('hide');
+        
+        setTimeout(() => {
+            statusDiv.innerText = '';
+            statusDiv.classList.remove('show', 'hide', 'status-success', 'status-error', 'status-warning');
+        }, 300);
+    }, 2000);
+}
+
+function startPixelRecoveryTimer() {
+    if (currentQuota < maxQuota && !pixelRecoveryInterval) {
+        pixelRecoveryInterval = setInterval(() => {
+            socket.emit('request-quota-update');
+        }, 1000);
+    }
+}
+
+function stopPixelRecoveryTimer() {
+    if (pixelRecoveryInterval) {
+        clearInterval(pixelRecoveryInterval);
+        pixelRecoveryInterval = null;
+    }
+}
+
+function startRecoveryCountdown() {
+    if (currentQuota >= maxQuota) {
+        recoveryProgressBar.style.opacity = '0';
+        recoveryProgressBar.style.strokeDasharray = '0, 100';
+        return;
+    }
+    
+    if (window.recoveryCountdownInterval) {
+        clearInterval(window.recoveryCountdownInterval);
+    }
+    
+    updateRecoveryProgress();
+    
+    window.recoveryCountdownInterval = setInterval(() => {
+        recoveryCountdown--;
+        if (recoveryCountdown >= 0) {
+            updateRecoveryProgress();
+        } else {
+            recoveryProgressBar.style.opacity = '0';
+            recoveryProgressBar.style.strokeDasharray = '0, 100';
+            clearInterval(window.recoveryCountdownInterval);
+            
+            setTimeout(() => {
+                socket.emit('request-quota-update');
+            }, 500);
+        }
+    }, 1000);
+}
+
+function updateRecoveryProgress() {
+    const progress = 100 - (recoveryCountdown * (100 / 60));
+    recoveryProgressBar.style.strokeDasharray = `${progress}, 100`;
+}
+
+window.addEventListener('beforeunload', () => {
+    stopPixelRecoveryTimer();
+    if (window.recoveryCountdownInterval) {
+        clearInterval(window.recoveryCountdownInterval);
+    }
+});

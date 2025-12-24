@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PixelDraw</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud top-left">
+            <div class="quota-circle">
+                <svg class="quota-progress" viewBox="0 0 36 36">
+                    <path class="quota-progress-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                    <path class="quota-progress-bar" id="recoveryProgressBar" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#4CAF50" stroke-width="3" stroke-dasharray="0, 100" stroke-linecap="round"/>
+                </svg>
+                <span class="quota-number" id="quota">-</span>
+            </div>
+        </div>
+
+        <div class="hud bottom-left">
+            <div class="color-controls">
+                <div class="color-row">
+                    <div class="color-custom-controls">
+                        <input type="color" id="customColorPicker" value="#000000">
+                        <button id="addColorPreset">+</button>
+                    </div>
+                    <div class="colors" id="colorPicker"></div>
+                    <div class="eraser-btn" id="eraser">
+                        <img src="img/eraser.svg">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud bottom-center">
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
