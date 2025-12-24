@@ -28,8 +28,10 @@ let initialScale = 1;
 let initialTouchCenter = { x: 0, y: 0 };
 let initialOffset = { x: 0, y: 0 };
 let isPinching = false;
+let wasPinching = false;
 let touchStartTime = 0;
 let touchStartPos = { x: 0, y: 0 };
+let lastTouchPos = { x: 0, y: 0 };
 let isTouchDragging = false;
 
 let pixelRecoveryInterval;
@@ -92,14 +94,14 @@ canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const zoomSpeed = 0.1;
     const delta = -Math.sign(e.deltaY);
-    
+
     const isAtMaxZoom = scale >= MAX_ZOOM && delta > 0;
     const isAtMinZoom = scale <= MIN_ZOOM && delta < 0;
-    
+
     if (isAtMaxZoom || isAtMinZoom) {
         return;
     }
-    
+
     const zoom = Math.exp(delta * zoomSpeed);
     const mouseX = e.clientX;
     const mouseY = e.clientY;
@@ -156,7 +158,7 @@ socket.on('init-board', (data) => {
         resizeCanvas();
     }
     renderColorPresets();
-    
+
     socket.emit('request-quota-update');
     startPixelRecoveryTimer();
 });
@@ -166,10 +168,10 @@ socket.on('pixel-update', ({ x, y, color }) => {
     }
     render();
 });
-socket.on('quota-update', (q, nextRefillTime) => { 
+socket.on('quota-update', (q, nextRefillTime) => {
     quotaSpan.innerText = q;
     currentQuota = q;
-    
+
     if (currentQuota >= maxQuota) {
         stopPixelRecoveryTimer();
         recoveryProgressBar.style.opacity = '0';
@@ -184,7 +186,7 @@ socket.on('quota-update', (q, nextRefillTime) => {
 });
 socket.on('error-message', (msg) => {
     showStatus(msg, 'error');
-    
+
     const match = msg.match(/(\d+)秒后/);
     if (match) {
         recoveryCountdown = parseInt(match[1]);
@@ -214,18 +216,18 @@ function addColorPreset(color) {
     if (existingIndex !== -1) {
         colorPresets.splice(existingIndex, 1);
     }
-    
+
     colorPresets.unshift(color);
-    
+
     if (colorPresets.length > MAX_COLOR_PRESETS) {
         colorPresets = colorPresets.slice(0, MAX_COLOR_PRESETS);
     }
-    
+
     saveColorPresets();
     renderColorPresets();
-    
+
     selectColor(color);
-    
+
     return existingIndex === -1;
 }
 
@@ -237,29 +239,29 @@ function clearColorPresets() {
 
 function renderColorPresets() {
     const colorPicker = document.getElementById('colorPicker');
-    
+
     colorPicker.innerHTML = '';
-    
+
     if (colorPresets.length === 0) {
         colorPicker.style.display = 'none';
         return;
     }
-    
+
     colorPicker.style.display = 'flex';
-    
+
     const isMobile = window.innerWidth <= 768;
     const maxColors = isMobile ? 6 : colorPresets.length;
-    
+
     colorPresets.slice(0, maxColors).forEach((color, index) => {
         const btn = document.createElement('div');
         btn.className = 'color-btn';
         btn.style.background = color;
         btn.dataset.color = color;
-        
+
         if (index === 0 && selectedColor === color) {
             btn.classList.add('selected');
         }
-        
+
         colorPicker.appendChild(btn);
     });
 }
@@ -270,14 +272,14 @@ function selectColor(color) {
     document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
     document.getElementById('customColorPicker').classList.remove('selected');
     document.getElementById('eraser').classList.remove('selected');
-    
+
     const targetBtn = document.querySelector(`[data-color="${color}"]`);
     if (targetBtn) {
         targetBtn.classList.add('selected');
     } else {
         document.getElementById('customColorPicker').classList.add('selected');
     }
-    
+
     document.getElementById('customColorPicker').value = color;
 }
 
@@ -323,13 +325,13 @@ document.getElementById('eraser').addEventListener('click', () => {
 
 function showStatus(message, type = 'info') {
     const statusDiv = document.getElementById('status');
-    
+
     if (statusDiv.hideTimeout) {
         clearTimeout(statusDiv.hideTimeout);
     }
-    
+
     statusDiv.classList.remove('show', 'hide', 'status-success', 'status-error', 'status-warning');
-    
+
     switch (type) {
         case 'success':
             statusDiv.classList.add('status-success');
@@ -341,15 +343,15 @@ function showStatus(message, type = 'info') {
             statusDiv.classList.add('status-warning');
             break;
     }
-    
+
     void statusDiv.offsetWidth;
-    
+
     statusDiv.innerText = message;
     statusDiv.classList.add('show');
-    
+
     statusDiv.hideTimeout = setTimeout(() => {
         statusDiv.classList.add('hide');
-        
+
         setTimeout(() => {
             statusDiv.innerText = '';
             statusDiv.classList.remove('show', 'hide', 'status-success', 'status-error', 'status-warning');
@@ -378,13 +380,13 @@ function startRecoveryCountdown() {
         recoveryProgressBar.style.strokeDasharray = '0, 100';
         return;
     }
-    
+
     if (window.recoveryCountdownInterval) {
         clearInterval(window.recoveryCountdownInterval);
     }
-    
+
     updateRecoveryProgress();
-    
+
     window.recoveryCountdownInterval = setInterval(() => {
         recoveryCountdown--;
         if (recoveryCountdown >= 0) {
@@ -393,7 +395,7 @@ function startRecoveryCountdown() {
             recoveryProgressBar.style.opacity = '0';
             recoveryProgressBar.style.strokeDasharray = '0, 100';
             clearInterval(window.recoveryCountdownInterval);
-            
+
             setTimeout(() => {
                 socket.emit('request-quota-update');
             }, 500);
@@ -428,9 +430,10 @@ function getTouchCenter(touches) {
 
 canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    
+
     if (e.touches.length === 2) {
         isPinching = true;
+        wasPinching = true;
         initialPinchDistance = getTouchDistance(e.touches);
         initialScale = scale;
         initialTouchCenter = getTouchCenter(e.touches);
@@ -438,28 +441,29 @@ canvas.addEventListener('touchstart', (e) => {
     } else if (e.touches.length === 1) {
         touchStartTime = Date.now();
         touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        lastTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         isTouchDragging = false;
     }
 }, { passive: false });
 
 canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
-    
+
     if (e.touches.length === 2 && isPinching) {
         const currentDistance = getTouchDistance(e.touches);
         const currentCenter = getTouchCenter(e.touches);
-        
+
         if (initialPinchDistance > 0) {
             const zoomFactor = currentDistance / initialPinchDistance;
             let newScale = initialScale * zoomFactor;
             newScale = Math.min(Math.max(newScale, MIN_ZOOM), MAX_ZOOM);
-            
+
             const scaleChange = newScale / initialScale;
-            
+
             offsetX = currentCenter.x - (initialTouchCenter.x - initialOffset.x) * scaleChange;
             offsetY = currentCenter.y - (initialTouchCenter.y - initialOffset.y) * scaleChange;
             scale = newScale;
-            
+
             render();
         }
     } else if (e.touches.length === 1) {
@@ -467,14 +471,14 @@ canvas.addEventListener('touchmove', (e) => {
             Math.pow(e.touches[0].clientX - touchStartPos.x, 2) +
             Math.pow(e.touches[0].clientY - touchStartPos.y, 2)
         );
-        
+
         if (moveDistance > 10) {
             isTouchDragging = true;
-            const dx = e.touches[0].clientX - touchStartPos.x;
-            const dy = e.touches[0].clientY - touchStartPos.y;
+            const dx = e.touches[0].clientX - lastTouchPos.x;
+            const dy = e.touches[0].clientY - lastTouchPos.y;
             offsetX += dx;
             offsetY += dy;
-            touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            lastTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             render();
         }
     }
@@ -482,15 +486,15 @@ canvas.addEventListener('touchmove', (e) => {
 
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
-    
+
     if (e.touches.length === 0) {
         if (isPinching) {
             isPinching = false;
             initialPinchDistance = 0;
-        } else if (!isTouchDragging && Date.now() - touchStartTime < 300) {
+        } else if (!wasPinching && !isTouchDragging && Date.now() - touchStartTime < 300) {
             const worldX = Math.floor((touchStartPos.x - offsetX) / scale);
             const worldY = Math.floor((touchStartPos.y - offsetY) / scale);
-            
+
             if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
                 const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
                 if (board[worldY] && board[worldY][worldX] === drawColor) {
@@ -500,9 +504,14 @@ canvas.addEventListener('touchend', (e) => {
             }
         }
         isTouchDragging = false;
+        wasPinching = false;
     } else if (e.touches.length === 1) {
         isPinching = false;
         initialPinchDistance = 0;
+        touchStartTime = Date.now();
+        touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        lastTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        isTouchDragging = false;
     }
 }, { passive: false });
 
