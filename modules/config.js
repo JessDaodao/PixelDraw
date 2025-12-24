@@ -1,30 +1,53 @@
 const path = require('path');
+const fs = require('fs');
 
-const config = {
-    // 服务端口
-    PORT: 3000,
-    
-    // 画布长度与宽度
-    BOARD_WIDTH: 800,
-    BOARD_HEIGHT: 600,
-    
-    // 最小缩放与最大缩放
-    MIN_ZOOM: 0.5,
-    MAX_ZOOM: 20,
-    
-    // 用户每指定时间可放置的像素
-    RATE_LIMIT_WINDOW: 2 * 60 * 1000,
-    MAX_PIXELS_PER_WINDOW: 100,
-    
-    // 文件配置
-    DATA_FILE: path.join(__dirname, '..', 'board_data.json'),
-    BACKUP_DIR: path.join(__dirname, '..', 'backup'),
-    
-    // 自动保存间隔（毫秒）
-    AUTO_SAVE_INTERVAL: 5 * 60 * 1000, // 5分钟
-    
-    // 关闭超时时间
-    SHUTDOWN_TIMEOUT: 3000 // 3秒
+const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
+
+const defaultConfig = {
+    port: 3000,
+    boardWidth: 800,
+    boardHeight: 500,
+    minZoom: 0.5,
+    maxZoom: 20,
+    rateLimitWindow: 2,
+    maxPixelsPerWindow: 100,
+    autoSaveInterval: 5,
+    shutdownTimeout: 3000
 };
+
+function loadConfig() {
+    let userConfig = {};
+    
+    if (fs.existsSync(CONFIG_FILE)) {
+        try {
+            const fileContent = fs.readFileSync(CONFIG_FILE, 'utf8');
+            userConfig = JSON.parse(fileContent);
+        } catch (error) {
+            console.error('配置文件读取失败:', error.message);
+        }
+    } else {
+        try {
+            fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaultConfig, null, 4), 'utf8');
+        } catch (error) {
+            console.error('配置文件创建失败:', error.message);
+        }
+    }
+    
+    const config = { ...defaultConfig, ...userConfig };
+    
+    config.PORT = config.port;
+    config.BOARD_WIDTH = config.boardWidth;
+    config.BOARD_HEIGHT = config.boardHeight;
+    config.MIN_ZOOM = config.minZoom;
+    config.MAX_ZOOM = config.maxZoom;
+    config.RATE_LIMIT_WINDOW = config.rateLimitWindow;
+    config.MAX_PIXELS_PER_WINDOW = config.maxPixelsPerWindow;
+    config.AUTO_SAVE_INTERVAL = config.autoSaveInterval;
+    config.SHUTDOWN_TIMEOUT = config.shutdownTimeout;
+    
+    return config;
+}
+
+const config = loadConfig();
 
 module.exports = config;

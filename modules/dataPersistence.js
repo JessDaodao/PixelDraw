@@ -13,15 +13,15 @@ class DataPersistence {
     }
 
     createBackupDir() {
-        if (!fs.existsSync(config.BACKUP_DIR)) {
-            fs.mkdirSync(config.BACKUP_DIR, { recursive: true });
+        if (!fs.existsSync(path.join(__dirname, '..', 'backup'))) {
+            fs.mkdirSync(path.join(__dirname, '..', 'backup'), { recursive: true });
         }
     }
 
     loadBoardData() {
         try {
-            if (fs.existsSync(config.DATA_FILE)) {
-                const data = JSON.parse(fs.readFileSync(config.DATA_FILE, 'utf8'));
+            if (fs.existsSync(path.join(__dirname, '..', 'board_data.json'))) {
+                const data = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'board_data.json'), 'utf8'));
                 if (data.board && Array.isArray(data.board)) {
                     this.board = data.board;
                     log('数据加载成功');
@@ -47,8 +47,8 @@ class DataPersistence {
                 };
                 
                 const fileName = isBackup ? 
-                    path.join(config.BACKUP_DIR, `board_backup_${Date.now()}.json`) : 
-                    config.DATA_FILE;
+                    path.join(path.join(__dirname, '..', 'backup'), `board_backup_${Date.now()}.json`) : 
+                    path.join(__dirname, '..', 'board_data.json');
                 
                 fs.writeFile(fileName, JSON.stringify(data, null, 2), (err) => {
                     if (err) {
