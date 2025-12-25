@@ -24,6 +24,7 @@ let offsetX = 0;
 let offsetY = 0;
 let isDragging = false;
 let lastMousePos = { x: 0, y: 0 };
+let hoverPixel = null;
 
 let initialPinchDistance = 0;
 let initialScale = 1;
@@ -98,7 +99,23 @@ function render() {
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(BOARD_WIDTH, i); ctx.stroke();
         }
     }
+
+    if (hoverPixel && hoverPixel.x >= 0 && hoverPixel.x < BOARD_WIDTH && hoverPixel.y >= 0 && hoverPixel.y < BOARD_HEIGHT) {
+        const pixelColor = board[hoverPixel.y][hoverPixel.x] || '#eee';
+        ctx.fillStyle = darkenColor(pixelColor, 30);
+        ctx.fillRect(hoverPixel.x, hoverPixel.y, 1, 1);
+    }
+
     ctx.restore();
+}
+
+function darkenColor(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2 * percent);
+    const R = Math.max((num >> 16) - amt, 0);
+    const G = Math.max((num >> 8 & 0x00FF) - amt, 0);
+    const B = Math.max((num & 0x0000FF) - amt, 0);
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
 function snapToBounds() {
@@ -169,6 +186,9 @@ function snapToBounds() {
 }
 
 canvas.addEventListener('wheel', (e) => {
+    if (isDragging) {
+        return;
+    }
     e.preventDefault();
     const zoomSpeed = 0.003;
     const rawDelta = -e.deltaY;
@@ -251,7 +271,7 @@ canvas.addEventListener('mousedown', (e) => {
             }
             socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
         }
-    } else {
+    } else if (e.button === 1) {
         isDragging = true;
         lastMousePos = { x: e.clientX, y: e.clientY };
     }
@@ -263,6 +283,16 @@ window.addEventListener('mousemove', (e) => {
         offsetY += e.clientY - lastMousePos.y;
         lastMousePos = { x: e.clientX, y: e.clientY };
         render();
+    } else {
+        const worldX = Math.floor((e.clientX - offsetX) / scale);
+        const worldY = Math.floor((e.clientY - offsetY) / scale);
+        
+        if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+            hoverPixel = { x: worldX, y: worldY };
+        } else {
+            hoverPixel = null;
+        }
+        render();
     }
 });
 
@@ -272,6 +302,12 @@ window.addEventListener('mouseup', () => {
         snapToBounds();
     }
 });
+
+canvas.addEventListener('mouseleave', () => {
+    hoverPixel = null;
+    render();
+});
+
 canvas.oncontextmenu = (e) => e.preventDefault();
 
 socket.on('init-board', (data) => {
