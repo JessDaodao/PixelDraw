@@ -5,6 +5,8 @@ const quotaSpan = document.getElementById('quota');
 const recoveryProgressBar = document.getElementById('recoveryProgressBar');
 const statusDiv = document.getElementById('status');
 
+const BROADCAST_VERSION_KEY = 'pixelDraw_broadcastVersion';
+
 let BOARD_WIDTH;
 let BOARD_HEIGHT;
 let board = [];
@@ -656,3 +658,52 @@ canvas.addEventListener('touchcancel', (e) => {
         snapToBounds();
     }
 }, { passive: false });
+
+function showBroadcastModal() {
+    const broadcastModal = document.getElementById('broadcast-modal');
+    const broadcastContent = document.getElementById('broadcast-content');
+    const closeBtn = document.querySelector('.modal-close');
+
+    fetch('/api/broadcast')
+        .then(response => response.json())
+        .then(data => {
+            if (data.content) {
+                const currentVersion = localStorage.getItem(BROADCAST_VERSION_KEY);
+                
+                if (currentVersion === String(data.version)) {
+                    return;
+                }
+                
+                broadcastContent.textContent = data.content;
+                broadcastModal.classList.add('show');
+
+                const closeModal = () => {
+                    broadcastModal.style.animation = 'fadeOut 0.3s ease forwards';
+                    broadcastModal.querySelector('.modal-content').style.animation = 'slideOut 0.3s ease forwards';
+                    
+                    setTimeout(() => {
+                        broadcastModal.classList.remove('show');
+                        broadcastModal.style.animation = '';
+                        broadcastModal.querySelector('.modal-content').style.animation = '';
+                        localStorage.setItem(BROADCAST_VERSION_KEY, String(data.version));
+                    }, 300);
+                };
+
+                closeBtn.onclick = closeModal;
+
+                broadcastModal.onclick = (e) => {
+                    if (e.target === broadcastModal) {
+                        closeModal();
+                    }
+                };
+            }
+        })
+}
+
+function checkAndShowBroadcast() {
+    setTimeout(() => {
+        showBroadcastModal();
+    }, 1000);
+}
+
+checkAndShowBroadcast();

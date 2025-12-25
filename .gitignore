@@ -143,3 +143,5 @@ vite.config.ts.timestamp-*
 
 board_data.json
 config.json
+broadcast.txt
+broadcast-ver.json

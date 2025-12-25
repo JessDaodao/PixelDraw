@@ -1,5 +1,7 @@
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { Server } = require('socket.io');
 const { log, logError } = require('./logger');
 const config = require('./config');
@@ -40,6 +42,37 @@ class ServerManager {
                 lastSave: this.dataPersistence.lastSave || null
             });
         });
+
+        this.app.get('/api/broadcast', (req, res) => {
+            const broadcastPath = path.join(__dirname, '..', 'broadcast.txt');
+            const versionPath = path.join(__dirname, '..', 'broadcast-ver.json');
+            
+            let broadcastContent = '';
+            let version = 1;
+
+            fs.readFile(broadcastPath, 'utf8', (err, data) => {
+                if (err) {
+                    res.status(500).json({ error: '公告文件不存在' });
+                    return;
+                }
+                broadcastContent = data;
+
+                fs.readFile(versionPath, 'utf8', (verErr, verData) => {
+                    if (verErr) {
+                        version = 1;
+                    } else {
+                        try {
+                            const verJson = JSON.parse(verData);
+                            version = verJson.version || 1;
+                        } catch (e) {
+                            version = 1;
+                        }
+                    }
+
+                    res.json({ content: broadcastContent, version: version });
+                });
+            });
+        });
     }
 
     start() {
@@ -51,6 +84,7 @@ class ServerManager {
         console.log(``);
 
         this.dataPersistence.loadBoardData();
+        this.ensureBroadcastFile();
 
         this.webSocketHandler = new WebSocketHandler(this.io, this.dataPersistence);
 
@@ -78,6 +112,21 @@ class ServerManager {
                 this.webSocketHandler.cleanupInactiveUsers();
             }
         }, config.RATE_LIMIT_WINDOW * 60 * 1000);
+    }
+
+    ensureBroadcastFile() {
+        const broadcastPath = path.join(__dirname, '..', 'broadcast.txt');
+        const versionPath = path.join(__dirname, '..', 'broadcast-ver.json');
+        
+        if (!fs.existsSync(broadcastPath)) {
+            const defaultContent = `公告文件（broadcast.txt）位于项目根目录，可自定义`;
+            fs.writeFileSync(broadcastPath, defaultContent, 'utf8');
+        }
+        
+        if (!fs.existsSync(versionPath)) {
+            const defaultVersion = { version: 1 };
+            fs.writeFileSync(versionPath, JSON.stringify(defaultVersion, null, 2), 'utf8');
+        }
     }
 
     setupGracefulShutdown() {
