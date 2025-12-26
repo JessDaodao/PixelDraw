@@ -5,6 +5,7 @@ body {
     background-color: #1a1a1a;
     touch-action: none;
     font-family: sans-serif;
+    user-select: none;
 }
 
 #loading-screen {
@@ -182,10 +183,6 @@ canvas {
     pointer-events: auto;
 }
 
-.login-btn:hover {
-    border: 2px solid rgba(255, 255, 255, 0.5);
-}
-
 .user-info {
     display: flex;
     align-items: center;
@@ -195,6 +192,62 @@ canvas {
     border: 2px solid rgba(255, 255, 255, 0.2);
     padding: 4px 12px 4px 4px;
     border-radius: 20px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.login-btn:hover,
+.user-info:hover {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.user-info-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.logout-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 4px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(-4px);
+    filter: blur(2px);
+    transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.logout-dropdown.show {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+    pointer-events: auto;
+}
+
+.logout-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 13px;
+    padding: 8px 12px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 7px;
+    transition: background 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .user-avatar {

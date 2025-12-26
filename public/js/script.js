@@ -21,6 +21,9 @@ const loginBtn = document.getElementById('loginBtn');
 const userInfoDiv = document.getElementById('userInfo');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
+const userInfoWrapper = document.querySelector('.user-info-wrapper');
+const logoutDropdown = document.getElementById('logoutDropdown');
+const logoutBtn = document.getElementById('logoutBtn');
 
 const BROADCAST_VERSION_KEY = 'pixelDraw_broadcastVersion';
 let BOARD_WIDTH;
@@ -921,4 +924,56 @@ function checkAndShowBroadcast() {
     setTimeout(() => {
         showBroadcastModal();
     }, 600);
+}
+
+function toggleLogoutDropdown(e) {
+    e.stopPropagation();
+    const isVisible = logoutDropdown.classList.contains('show');
+    if (isVisible) {
+        logoutDropdown.classList.remove('show');
+        setTimeout(() => {
+            if (!logoutDropdown.classList.contains('show')) {
+                logoutDropdown.style.display = 'none';
+            }
+        }, 200);
+    } else {
+        logoutDropdown.style.display = 'block';
+        setTimeout(() => {
+            logoutDropdown.classList.add('show');
+        }, 10);
+    }
+}
+
+function hideLogoutDropdown() {
+    logoutDropdown.classList.remove('show');
+    setTimeout(() => {
+        if (!logoutDropdown.classList.contains('show')) {
+            logoutDropdown.style.display = 'none';
+        }
+    }, 200);
+}
+
+if (userInfoWrapper) {
+    userInfoWrapper.addEventListener('click', toggleLogoutDropdown);
+}
+
+document.addEventListener('click', (e) => {
+    if (logoutDropdown && logoutDropdown.style.display === 'block') {
+        if (!userInfoWrapper.contains(e.target) && !logoutDropdown.contains(e.target)) {
+            hideLogoutDropdown();
+        }
+    }
+});
+
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        localStorage.removeItem('eu_session_key');
+        document.cookie.split(';').forEach(cookie => {
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+        });
+        window.location.reload();
+    });
 }
