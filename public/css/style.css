@@ -144,15 +144,6 @@ canvas {
     }
 }
 
-.top-left {
-    top: 7px;
-    left: 7px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
 .top-right {
     top: 7px;
     right: 7px;
@@ -212,6 +203,15 @@ canvas {
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: right;
+}
+
+.top-left {
+    top: 7px;
+    left: 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
 .quota-circle {
@@ -517,6 +517,10 @@ canvas {
         left: 48%;
         transform: translateX(-50%) scale(1.2);
         align-items: center;
+    }
+
+    .connection-status {
+        display: none;
     }
 }
 
