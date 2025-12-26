@@ -6,6 +6,7 @@ const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const defaultConfig = {
     port: 3000,
     siteTitle: 'PixelDraw',
+    broadcastTitle: '公告',
     boardWidth: 800,
     boardHeight: 500,
     minZoom: 0.5,
@@ -40,6 +41,7 @@ function loadConfig() {
     
     config.PORT = config.port;
     config.SITE_TITLE = config.siteTitle;
+    config.BROADCAST_TITLE = config.broadcastTitle;
     config.BOARD_WIDTH = config.boardWidth;
     config.BOARD_HEIGHT = config.boardHeight;
     config.MIN_ZOOM = config.minZoom;

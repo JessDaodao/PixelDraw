@@ -35,7 +35,8 @@ class ServerManager {
         });
         this.app.get('/api/config', (req, res) => {
             res.json({
-                siteTitle: config.SITE_TITLE
+                siteTitle: config.SITE_TITLE,
+                broadcastTitle: config.BROADCAST_TITLE
             });
         });
         this.app.get('/api/board/status', (req, res) => {

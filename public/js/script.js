@@ -88,6 +88,12 @@ fetch('/api/config')
         if (config.siteTitle) {
             document.title = config.siteTitle;
         }
+        if (config.broadcastTitle) {
+            const broadcastTitle = document.querySelector('#broadcast-modal .modal-header h2');
+            if (broadcastTitle) {
+                broadcastTitle.textContent = config.broadcastTitle;
+            }
+        }
     })
 
 function updateConnectionStatus(status) {
