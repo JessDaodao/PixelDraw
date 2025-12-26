@@ -53,23 +53,27 @@ let zoomTargetOffsetY = null;
 
 window.addEventListener('resize', resizeCanvas);
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.scale(dpr, dpr);
     if (offsetX === 0 && offsetY === 0) {
         const optimalScale = Math.min(
-            (canvas.width * 0.8) / BOARD_WIDTH,
-            (canvas.height * 0.8) / BOARD_HEIGHT
+            (window.innerWidth * 0.8) / BOARD_WIDTH,
+            (window.innerHeight * 0.8) / BOARD_HEIGHT
         );
         scale = Math.max(MIN_ZOOM, Math.min(optimalScale, MAX_ZOOM));
-        offsetX = (canvas.width - BOARD_WIDTH * scale) / 2;
-        offsetY = (canvas.height - BOARD_HEIGHT * scale) / 2;
+        offsetX = (window.innerWidth - BOARD_WIDTH * scale) / 2;
+        offsetY = (window.innerHeight - BOARD_HEIGHT * scale) / 2;
     }
     render();
     renderColorPresets();
 }
 
 function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
     ctx.save();
     ctx.translate(offsetX, offsetY);
@@ -122,17 +126,17 @@ function snapToBounds() {
     const fixedScale = scale;
     const boardWidth = BOARD_WIDTH * fixedScale;
     const boardHeight = BOARD_HEIGHT * fixedScale;
-    const maxOffsetX = canvas.width * 0.3;
-    const maxOffsetY = canvas.height * 0.3;
-    const minOffsetX = canvas.width - boardWidth - maxOffsetX;
-    const minOffsetY = canvas.height - boardHeight - maxOffsetY;
+    const maxOffsetX = window.innerWidth * 0.3;
+    const maxOffsetY = window.innerHeight * 0.3;
+    const minOffsetX = window.innerWidth - boardWidth - maxOffsetX;
+    const minOffsetY = window.innerHeight - boardHeight - maxOffsetY;
 
     let targetOffsetX = offsetX;
     let targetOffsetY = offsetY;
     let needsSnap = false;
 
-    if (boardWidth < canvas.width) {
-        targetOffsetX = (canvas.width - boardWidth) / 2;
+    if (boardWidth < window.innerWidth) {
+        targetOffsetX = (window.innerWidth - boardWidth) / 2;
         needsSnap = true;
     } else {
         if (offsetX > maxOffsetX) {
@@ -144,8 +148,8 @@ function snapToBounds() {
         }
     }
 
-    if (boardHeight < canvas.height) {
-        targetOffsetY = (canvas.height - boardHeight) / 2;
+    if (boardHeight < window.innerHeight) {
+        targetOffsetY = (window.innerHeight - boardHeight) / 2;
         needsSnap = true;
     } else {
         if (offsetY > maxOffsetY) {
