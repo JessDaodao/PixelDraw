@@ -217,7 +217,7 @@ canvas {
     right: 0;
     z-index: 100;
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
     filter: blur(2px);
     transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
     pointer-events: none;
@@ -241,11 +241,11 @@ canvas {
     width: 100%;
     text-align: left;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
 .user-avatar {
