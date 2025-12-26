@@ -4,6 +4,8 @@ const ctx = canvas.getContext('2d');
 const quotaSpan = document.getElementById('quota');
 const recoveryProgressBar = document.getElementById('recoveryProgressBar');
 const statusDiv = document.getElementById('status');
+const connectionStatusDiv = document.getElementById('connection-status');
+const pingTextSpan = document.getElementById('ping-text');
 
 const BROADCAST_VERSION_KEY = 'pixelDraw_broadcastVersion';
 
@@ -50,6 +52,75 @@ let zoomStartOffsetY = null;
 let zoomTargetScale = null;
 let zoomTargetOffsetX = null;
 let zoomTargetOffsetY = null;
+
+let reconnectInterval = null;
+const RECONNECT_DELAY = 10000;
+
+let pingInterval = null;
+let currentPing = 0;
+
+function updateConnectionStatus(status) {
+    connectionStatusDiv.className = 'connection-status ' + status;
+    const statusText = connectionStatusDiv.querySelector('.status-text');
+    switch (status) {
+        case 'connected':
+            statusText.textContent = '已连接';
+            break;
+        case 'reconnecting':
+            statusText.textContent = '重连中...';
+            break;
+    }
+}
+
+function measurePing() {
+    const startTime = Date.now();
+    socket.emit('ping');
+    socket.once('pong', () => {
+        currentPing = Date.now() - startTime;
+        pingTextSpan.textContent = currentPing + 'ms';
+    });
+}
+
+function startPingMeasurement() {
+    if (pingInterval) {
+        clearInterval(pingInterval);
+    }
+    measurePing();
+    pingInterval = setInterval(measurePing, 1000);
+}
+
+function stopPingMeasurement() {
+    if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+    }
+    pingTextSpan.textContent = '';
+}
+
+socket.on('connect', () => {
+    updateConnectionStatus('connected');
+    if (reconnectInterval) {
+        clearInterval(reconnectInterval);
+        reconnectInterval = null;
+    }
+    startPingMeasurement();
+});
+
+socket.on('disconnect', () => {
+    updateConnectionStatus('reconnecting');
+    stopPingMeasurement();
+    if (!reconnectInterval) {
+        reconnectInterval = setInterval(() => {
+            socket.connect();
+        }, RECONNECT_DELAY);
+    }
+});
+
+socket.on('connect_error', () => {
+    if (!socket.connected) {
+        updateConnectionStatus('reconnecting');
+    }
+});
 
 window.addEventListener('resize', resizeCanvas);
 function resizeCanvas() {

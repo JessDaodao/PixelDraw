@@ -44,6 +44,10 @@ class WebSocketHandler {
             socket.on('request-quota-update', () => {
                 this.updateUserQuota(socket, userIP);
             });
+
+            socket.on('ping', () => {
+                socket.emit('pong');
+            });
         });
     }
 
