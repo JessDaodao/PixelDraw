@@ -79,6 +79,14 @@ if (loginBtn) {
     });
 }
 
+fetch('/api/config')
+    .then(res => res.json())
+    .then(config => {
+        if (config.siteTitle) {
+            document.title = config.siteTitle;
+        }
+    })
+
 function updateConnectionStatus(status) {
     connectionStatusDiv.className = 'connection-status ' + status;
     const statusText = connectionStatusDiv.querySelector('.status-text');
@@ -215,7 +223,7 @@ function applyInertia() {
     const maxOffsetY = window.innerHeight * 0.3;
     const minOffsetX = window.innerWidth - boardWidth - maxOffsetX;
     const minOffsetY = window.innerHeight - boardHeight - maxOffsetY;
-    
+
     let isOutOfBounds = false;
     if (boardWidth < window.innerWidth) {
         isOutOfBounds = true;
@@ -231,13 +239,13 @@ function applyInertia() {
             isOutOfBounds = true;
         }
     }
-    
+
     if (isOutOfBounds) {
         inertiaAnimationId = null;
         snapToBounds();
         return;
     }
-    
+
     if (Math.abs(velocityX) < minVelocity && Math.abs(velocityY) < minVelocity) {
         inertiaAnimationId = null;
         snapToBounds();

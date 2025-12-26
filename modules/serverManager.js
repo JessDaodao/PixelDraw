@@ -33,6 +33,11 @@ class ServerManager {
                 uptime: process.uptime()
             });
         });
+        this.app.get('/api/config', (req, res) => {
+            res.json({
+                siteTitle: config.SITE_TITLE
+            });
+        });
         this.app.get('/api/board/status', (req, res) => {
             res.json({
                 width: config.BOARD_WIDTH,

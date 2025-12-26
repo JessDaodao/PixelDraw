@@ -30,6 +30,16 @@ body {
     letter-spacing: 0.5px;
 }
 
+.loading-text a {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.loading-text a:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
 #loading-screen.hidden {
     opacity: 0;
     visibility: hidden;
