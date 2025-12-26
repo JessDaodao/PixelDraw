@@ -971,6 +971,22 @@ document.addEventListener('click', (e) => {
     }
 });
 
+document.addEventListener('touchstart', (e) => {
+    if (logoutDropdown && logoutDropdown.style.display === 'block') {
+        if (!userInfoWrapper.contains(e.target) && !logoutDropdown.contains(e.target)) {
+            hideLogoutDropdown();
+        }
+    }
+});
+
+document.addEventListener('mousedown', (e) => {
+    if (e.button === 1 && logoutDropdown && logoutDropdown.style.display === 'block') {
+        if (!userInfoWrapper.contains(e.target) && !logoutDropdown.contains(e.target)) {
+            hideLogoutDropdown();
+        }
+    }
+});
+
 if (logoutBtn) {
     logoutBtn.addEventListener('click', (e) => {
         e.stopPropagation();
