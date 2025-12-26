@@ -168,6 +168,7 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    position: relative;
 }
 
 .login-btn {
@@ -211,12 +212,9 @@ canvas {
 .logout-dropdown {
     position: absolute;
     top: calc(100% + 8px);
-    right: 0;
-    background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    padding: 4px;
+    border-radius: 20px;
+    right: 0;
     z-index: 100;
     opacity: 0;
     transform: translateY(-4px);
@@ -234,15 +232,15 @@ canvas {
 }
 
 .logout-btn {
-    background: transparent;
-    border: none;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
     color: white;
     font-size: 13px;
     padding: 8px 12px;
     width: 100%;
     text-align: left;
     cursor: pointer;
-    border-radius: 7px;
     transition: background 0.2s ease;
 }
 
