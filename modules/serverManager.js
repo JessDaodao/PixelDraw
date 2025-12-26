@@ -46,7 +46,7 @@ class ServerManager {
         this.app.get('/api/broadcast', (req, res) => {
             const broadcastPath = path.join(__dirname, '..', 'broadcast.txt');
             const versionPath = path.join(__dirname, '..', 'broadcast-ver.json');
-            
+
             let broadcastContent = '';
             let version = 1;
 
@@ -117,12 +117,12 @@ class ServerManager {
     ensureBroadcastFile() {
         const broadcastPath = path.join(__dirname, '..', 'broadcast.txt');
         const versionPath = path.join(__dirname, '..', 'broadcast-ver.json');
-        
+
         if (!fs.existsSync(broadcastPath)) {
             const defaultContent = `公告文件（broadcast.txt）位于项目根目录，可自定义`;
             fs.writeFileSync(broadcastPath, defaultContent, 'utf8');
         }
-        
+
         if (!fs.existsSync(versionPath)) {
             const defaultVersion = { version: 1 };
             fs.writeFileSync(versionPath, JSON.stringify(defaultVersion, null, 2), 'utf8');
@@ -167,7 +167,9 @@ class ServerManager {
                 log('正在保存画板数据');
                 await this.dataPersistence.saveBoardData();
 
-                log('正在创建备份');
+                if (config.ENABLE_BACKUP) {
+                    log('正在创建备份');
+                }              
                 await this.dataPersistence.saveBoardData(true);
 
                 if (this.autoSaveInterval) {

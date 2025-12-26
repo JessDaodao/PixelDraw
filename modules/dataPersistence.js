@@ -38,6 +38,11 @@ class DataPersistence {
     saveBoardData(isBackup = false) {
         return new Promise((resolve, reject) => {
             try {
+                if (isBackup && !config.ENABLE_BACKUP) {
+                    resolve();
+                    return;
+                }
+
                 this.lastSave = new Date().toISOString();
                 const data = {
                     board: this.board,
@@ -55,6 +60,9 @@ class DataPersistence {
                         logError('数据保存失败: ' + err);
                         reject(err);
                     } else {
+                        if (isBackup) {
+                            this.cleanOldBackups();
+                        }
                         resolve();
                     }
                 });
@@ -63,6 +71,34 @@ class DataPersistence {
                 reject(error);
             }
         });
+    }
+
+    cleanOldBackups() {
+        try {
+            const backupDir = path.join(__dirname, '..', 'backup');
+            if (!fs.existsSync(backupDir)) {
+                return;
+            }
+
+            const files = fs.readdirSync(backupDir)
+                .filter(file => file.startsWith('board_backup_') && file.endsWith('.json'))
+                .map(file => ({
+                    name: file,
+                    path: path.join(backupDir, file),
+                    time: fs.statSync(path.join(backupDir, file)).mtime.getTime()
+                }))
+                .sort((a, b) => b.time - a.time);
+
+            if (files.length > config.MAX_BACKUPS) {
+                const filesToDelete = files.slice(config.MAX_BACKUPS);
+                filesToDelete.forEach(file => {
+                    fs.unlinkSync(file.path);
+                    log(`删除旧备份: ${file.name}`);
+                });
+            }
+        } catch (error) {
+            logError('旧备份删除失败: ' + error);
+        }
     }
 
     getBoard() {
