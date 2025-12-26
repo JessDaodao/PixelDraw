@@ -1,9 +1,7 @@
-// 获取URL中的Token和本地存储的SessionKey
 const urlParams = new URLSearchParams(window.location.search);
 const euToken = urlParams.get('eu_token');
 const euSessionKey = localStorage.getItem('eu_session_key');
 
-// 初始化Socket连接，携带认证信息
 const socket = io({
     auth: {
         token: euToken,
@@ -19,7 +17,6 @@ const statusDiv = document.getElementById('status');
 const connectionStatusDiv = document.getElementById('connection-status');
 const pingTextSpan = document.getElementById('ping-text');
 
-// 获取UI元素引用
 const loginBtn = document.getElementById('loginBtn');
 const userInfoDiv = document.getElementById('userInfo');
 const userAvatar = document.getElementById('userAvatar');
@@ -69,6 +66,12 @@ let reconnectInterval = null;
 const RECONNECT_DELAY = 10000;
 let pingInterval = null;
 let currentPing = 0;
+let velocityX = 0;
+let velocityY = 0;
+let lastMoveTime = 0;
+let inertiaAnimationId = null;
+const friction = 0.95;
+const minVelocity = 0.1;
 
 if (loginBtn) {
     loginBtn.addEventListener('click', () => {
@@ -205,6 +208,49 @@ function darkenColor(color, percent) {
     return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
+function applyInertia() {
+    const boardWidth = BOARD_WIDTH * scale;
+    const boardHeight = BOARD_HEIGHT * scale;
+    const maxOffsetX = window.innerWidth * 0.3;
+    const maxOffsetY = window.innerHeight * 0.3;
+    const minOffsetX = window.innerWidth - boardWidth - maxOffsetX;
+    const minOffsetY = window.innerHeight - boardHeight - maxOffsetY;
+    
+    let isOutOfBounds = false;
+    if (boardWidth < window.innerWidth) {
+        isOutOfBounds = true;
+    } else {
+        if (offsetX > maxOffsetX || offsetX < minOffsetX) {
+            isOutOfBounds = true;
+        }
+    }
+    if (boardHeight < window.innerHeight) {
+        isOutOfBounds = true;
+    } else {
+        if (offsetY > maxOffsetY || offsetY < minOffsetY) {
+            isOutOfBounds = true;
+        }
+    }
+    
+    if (isOutOfBounds) {
+        inertiaAnimationId = null;
+        snapToBounds();
+        return;
+    }
+    
+    if (Math.abs(velocityX) < minVelocity && Math.abs(velocityY) < minVelocity) {
+        inertiaAnimationId = null;
+        snapToBounds();
+        return;
+    }
+    offsetX += velocityX;
+    offsetY += velocityY;
+    velocityX *= friction;
+    velocityY *= friction;
+    render();
+    inertiaAnimationId = requestAnimationFrame(applyInertia);
+}
+
 function snapToBounds() {
     const fixedScale = scale;
     const boardWidth = BOARD_WIDTH * fixedScale;
@@ -316,6 +362,7 @@ canvas.addEventListener('wheel', (e) => {
             zoomAnimationId = requestAnimationFrame(animate);
         } else {
             zoomAnimationId = null;
+            snapToBounds();
         }
     }
     if (!zoomAnimationId) {
@@ -337,14 +384,30 @@ canvas.addEventListener('mousedown', (e) => {
     } else if (e.button === 1) {
         isDragging = true;
         lastMousePos = { x: e.clientX, y: e.clientY };
+        velocityX = 0;
+        velocityY = 0;
+        lastMoveTime = performance.now();
+        if (inertiaAnimationId) {
+            cancelAnimationFrame(inertiaAnimationId);
+            inertiaAnimationId = null;
+        }
     }
 });
 
 window.addEventListener('mousemove', (e) => {
     if (isDragging) {
-        offsetX += e.clientX - lastMousePos.x;
-        offsetY += e.clientY - lastMousePos.y;
+        const currentTime = performance.now();
+        const deltaTime = currentTime - lastMoveTime;
+        const deltaX = e.clientX - lastMousePos.x;
+        const deltaY = e.clientY - lastMousePos.y;
+        offsetX += deltaX;
+        offsetY += deltaY;
+        if (deltaTime > 0) {
+            velocityX = deltaX / deltaTime * 16;
+            velocityY = deltaY / deltaTime * 16;
+        }
         lastMousePos = { x: e.clientX, y: e.clientY };
+        lastMoveTime = currentTime;
         render();
     } else {
         const worldX = Math.floor((e.clientX - offsetX) / scale);
@@ -361,7 +424,11 @@ window.addEventListener('mousemove', (e) => {
 window.addEventListener('mouseup', () => {
     if (isDragging) {
         isDragging = false;
-        snapToBounds();
+        if (Math.abs(velocityX) >= minVelocity || Math.abs(velocityY) >= minVelocity) {
+            inertiaAnimationId = requestAnimationFrame(applyInertia);
+        } else {
+            snapToBounds();
+        }
     }
 });
 
@@ -391,14 +458,11 @@ socket.on('init-board', (data) => {
     hideLoadingScreen();
 });
 
-// 监听登录成功事件
 socket.on('login-success', (data) => {
-    // 保存SessionKey到本地，用于下次自动登录
     if (data.sessionKey) {
         localStorage.setItem('eu_session_key', data.sessionKey);
     }
 
-    // 更新UI显示用户信息
     if (data.user) {
         if (loginBtn) loginBtn.style.display = 'none';
         if (userInfoDiv) userInfoDiv.style.display = 'flex';
@@ -661,11 +725,24 @@ canvas.addEventListener('touchstart', (e) => {
         initialScale = scale;
         initialTouchCenter = getTouchCenter(e.touches);
         initialOffset = { x: offsetX, y: offsetY };
+        velocityX = 0;
+        velocityY = 0;
+        if (inertiaAnimationId) {
+            cancelAnimationFrame(inertiaAnimationId);
+            inertiaAnimationId = null;
+        }
     } else if (e.touches.length === 1) {
         touchStartTime = Date.now();
         touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         lastTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        lastMoveTime = performance.now();
+        velocityX = 0;
+        velocityY = 0;
         isTouchDragging = false;
+        if (inertiaAnimationId) {
+            cancelAnimationFrame(inertiaAnimationId);
+            inertiaAnimationId = null;
+        }
     }
 }, { passive: false });
 
@@ -691,11 +768,18 @@ canvas.addEventListener('touchmove', (e) => {
         );
         if (moveDistance > 10) {
             isTouchDragging = true;
+            const currentTime = performance.now();
+            const deltaTime = currentTime - lastMoveTime;
             const dx = e.touches[0].clientX - lastTouchPos.x;
             const dy = e.touches[0].clientY - lastTouchPos.y;
             offsetX += dx;
             offsetY += dy;
+            if (deltaTime > 0) {
+                velocityX = dx / deltaTime * 16;
+                velocityY = dy / deltaTime * 16;
+            }
             lastTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            lastMoveTime = currentTime;
             render();
         }
     }
@@ -721,7 +805,11 @@ canvas.addEventListener('touchend', (e) => {
         }
         if (isTouchDragging) {
             isTouchDragging = false;
-            snapToBounds();
+            if (Math.abs(velocityX) >= minVelocity || Math.abs(velocityY) >= minVelocity) {
+                inertiaAnimationId = requestAnimationFrame(applyInertia);
+            } else {
+                snapToBounds();
+            }
         }
         wasPinching = false;
     } else if (e.touches.length === 1) {
@@ -740,7 +828,11 @@ canvas.addEventListener('touchcancel', (e) => {
     initialPinchDistance = 0;
     if (isTouchDragging) {
         isTouchDragging = false;
-        snapToBounds();
+        if (Math.abs(velocityX) >= minVelocity || Math.abs(velocityY) >= minVelocity) {
+            inertiaAnimationId = requestAnimationFrame(applyInertia);
+        } else {
+            snapToBounds();
+        }
     }
 }, { passive: false });
 

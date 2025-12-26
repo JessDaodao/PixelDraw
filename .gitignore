@@ -145,3 +145,5 @@ board_data.json
 config.json
 broadcast.txt
 broadcast-ver.json
+rate_limits.json
+sessions.json

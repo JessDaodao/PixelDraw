@@ -6,17 +6,14 @@ class WebSocketHandler {
     constructor(io, dataPersistence) {
         this.io = io;
         this.dataPersistence = dataPersistence;
-        // 从 dataPersistence 获取会话和配额数据的引用，以实现数据持久化
         this.sessions = this.dataPersistence.getSessions();
         this.userRateLimits = this.dataPersistence.getUserRateLimits();
         this.activeConnections = new Map();
         
-        // 添加Socket中间件进行鉴权
         this.io.use(async (socket, next) => {
             const auth = socket.handshake.auth || {};
             const token = auth.token;
             const sessionKey = auth.sessionKey;
-            // 默认设置为游客身份
             socket.user = { isGuest: true, id: null, nickname: 'Guest' };
             if (sessionKey && this.sessions.has(sessionKey)) {
                 socket.user = this.sessions.get(sessionKey);
@@ -27,9 +24,8 @@ class WebSocketHandler {
                 if (user) {
                     const newSessionKey = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                     this.sessions.set(newSessionKey, user);
-                    // 将用户信息挂载到 socket
                     socket.user = user;
-                    socket.newSessionKey = newSessionKey; // 暂存，连接成功后发给客户端
+                    socket.newSessionKey = newSessionKey;
                 }
             }
             
@@ -38,12 +34,10 @@ class WebSocketHandler {
         this.setupSocketHandlers();
     }
 
-    // 对接后端API
     async verifyToken(token) {
         return new Promise((resolve) => {
             const verifyUrl = `https://eqmemory.cn/eu-json/eu-connect/v1/user-profile?token=${token}`;
             
-            // 添加 User-Agent 防止被防火墙拦截，添加 Accept 声明接受 JSON
             const options = {
                 headers: {
                     'User-Agent': 'PixelDraw-Server/1.0',
@@ -54,7 +48,6 @@ class WebSocketHandler {
                 let data = '';
                 res.on('data', chunk => data += chunk);
                 res.on('end', () => {
-                    // 检查状态码
                     if (res.statusCode !== 200) {
                         logError(`Token验证请求失败，状态码: ${res.statusCode}`);
                         logError(`响应内容摘要: ${data.substring(0, 100)}...`);
@@ -91,12 +84,12 @@ class WebSocketHandler {
     setupSocketHandlers() {
         this.io.on('connection', (socket) => {
             const userIP = this.getUserIP(socket);
-            const user = socket.user; // 获取鉴权后的用户对象
+            const user = socket.user;
             log(`用户连接: ${userIP} (Socket: ${socket.id}, User: ${user.nickname})`);
             this.activeConnections.set(socket.id, {
                 socket: socket,
                 userIP: userIP,
-                user: user, // 保存用户信息到连接记录
+                user: user,
                 connectedAt: Date.now()
             });
             if (!user.isGuest) {
@@ -106,7 +99,7 @@ class WebSocketHandler {
                         nickname: user.nickname,
                         avatar: user.avatar
                     },
-                    sessionKey: socket.newSessionKey // 发送新的 SessionKey 给客户端保存
+                    sessionKey: socket.newSessionKey
                 });
                 delete socket.newSessionKey;
             }
@@ -119,9 +112,9 @@ class WebSocketHandler {
                 maxPixels: config.MAX_PIXELS_PER_WINDOW
             });
             
-            this.updateUserQuota(socket); // 传入 socket 以便根据用户ID更新配额
+            this.updateUserQuota(socket);
             socket.on('draw-pixel', ({ x, y, color }) => {
-                this.handleDrawPixel(socket, x, y, color); // 传入 socket
+                this.handleDrawPixel(socket, x, y, color);
             });
             socket.on('disconnect', () => {
                 log(`用户断开连接: ${userIP} (Socket: ${socket.id})`);
@@ -151,7 +144,6 @@ class WebSocketHandler {
     }
 
     handleDrawPixel(socket, x, y, color) {
-        // 游客检查
         if (socket.user.isGuest) {
             socket.emit('error-message', '游客无法绘图，请先登录！');
             return;
@@ -165,7 +157,6 @@ class WebSocketHandler {
         }
         const now = Date.now();
         
-        // 使用用户ID作为限流键，而不是IP
         const rateLimitKey = socket.user.id;
         
         let userLimit = this.userRateLimits[rateLimitKey];
@@ -178,7 +169,7 @@ class WebSocketHandler {
             this.userRateLimits[rateLimitKey] = userLimit;
         }
         const timeSinceLastRefill = now - userLimit.lastRefillTime;
-        const tokensToRefill = Math.floor(timeSinceLastRefill / (60 * 1000)); // 每分钟1个
+        const tokensToRefill = Math.floor(timeSinceLastRefill / (60 * 1000));
         
         if (tokensToRefill > 0) {
             userLimit.tokens = Math.min(userLimit.tokens + tokensToRefill, userLimit.maxTokens);
@@ -192,20 +183,18 @@ class WebSocketHandler {
                 this.updateUserQuota(socket);
             }
         } else {
-            // 计算还需要等待多少秒
             const waitTime = 60 - Math.floor((now - userLimit.lastRefillTime) / 1000) % 60;
             socket.emit('error-message', `像素已用完！请等待 ${waitTime} 秒。`);
         }
     }
 
     updateUserQuota(socket) {
-        // 如果是游客，配额显示为0
         if (socket.user.isGuest) {
             socket.emit('quota-update', 0, null);
             return;
         }
         const now = Date.now();
-        const rateLimitKey = socket.user.id; // 使用用户ID
+        const rateLimitKey = socket.user.id;
         
         let userLimit = this.userRateLimits[rateLimitKey];
         

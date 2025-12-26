@@ -69,13 +69,13 @@ class ServerManager {
     }
 
     start() {
-        console.log(`   \\____\\ \\_         \\_ \\___\\_\\`);
-        console.log(`  |  \\_  |_|_\\_ \\_\\_\\_| |    \\\\ \\_\\_ \\_\\_ \\_ \\_ \\_\\`);
-        console.log(`  |   \\_| | \\'_| -\\_| |  |  |  \\_| .'| | | |\\`);
-        console.log(`  |\\_\\|  |_|\\_,_|\\__\\_|\\_|\\___\\_/|\\_| |\\__,|\\____\\|`);
+        console.log(`   _____ _         _ ____`);
+        console.log(`  |  _  |_|_ _ ___| |    \\ ___ ___ _ _ _`);
+        console.log(`  |   __| |_'_| -_| |  |  |  _| .'| | | |`);
+        console.log(`  |__|  |_|_,_|___|_|____/|_| |__,|_____|`);
         console.log(`             ----Draw Magic!----`);
         console.log(``);
-        // 调用新的统一数据加载方法以恢复所有持久化数据
+
         this.dataPersistence.loadData();
         this.ensureBroadcastFile();
         this.webSocketHandler = new WebSocketHandler(this.io, this.dataPersistence);
@@ -89,7 +89,6 @@ class ServerManager {
     setupAutoSave() {
         this.autoSaveInterval = setInterval(async () => {
             try {
-                // 此方法现在会保存所有应用数据（画板、会话、配额）
                 await this.dataPersistence.saveBoardData();
             } catch (error) {
                 logError('自动保存失败: ' + error);

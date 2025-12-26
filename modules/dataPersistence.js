@@ -8,7 +8,6 @@ class DataPersistence {
         this.board = Array(config.BOARD_HEIGHT).fill(null).map(() => 
             Array(config.BOARD_WIDTH).fill('#FFFFFF')
         );
-        // 初始化会话和用户配额，用于存储持久化数据
         this.sessions = new Map();
         this.userRateLimits = {};
         this.lastSave = null;
@@ -21,7 +20,6 @@ class DataPersistence {
         }
     }
 
-    // 将 loadBoardData 方法扩展为加载所有应用数据
     loadData() {
         try {
             if (fs.existsSync(path.join(__dirname, '..', 'board_data.json'))) {
@@ -36,7 +34,6 @@ class DataPersistence {
             logError('画板数据加载失败: ' + error);
         }
         
-        // 加载持久化的会话数据
         try {
             const sessionPath = path.join(__dirname, '..', 'sessions.json');
             if (fs.existsSync(sessionPath)) {
@@ -48,7 +45,6 @@ class DataPersistence {
             logError('会话数据加载失败: ' + error);
         }
 
-        // 加载持久化的用户配额数据
         try {
             const rateLimitPath = path.join(__dirname, '..', 'rate_limits.json');
             if (fs.existsSync(rateLimitPath)) {
@@ -60,7 +56,6 @@ class DataPersistence {
         }
     }
 
-    // 将 saveBoardData 方法扩展为保存所有应用数据
     saveBoardData(isBackup = false) {
         return new Promise((resolve, reject) => {
             try {
@@ -91,20 +86,16 @@ class DataPersistence {
                     return;
                 }
 
-                // 使用 Promise.all 并发保存所有数据
                 const saveDataPromises = [];
 
-                // 准备画板数据保存
                 const boardData = { board: this.board, boardWidth: config.BOARD_WIDTH, boardHeight: config.BOARD_HEIGHT, lastSave: this.lastSave };
                 const boardPath = path.join(__dirname, '..', 'board_data.json');
                 saveDataPromises.push(fs.promises.writeFile(boardPath, JSON.stringify(boardData, null, 2)));
 
-                // 准备会话数据保存
                 const sessionPath = path.join(__dirname, '..', 'sessions.json');
                 const sessionData = JSON.stringify(Array.from(this.sessions.entries()));
                 saveDataPromises.push(fs.promises.writeFile(sessionPath, sessionData));
                 
-                // 准备用户配额数据保存
                 const rateLimitPath = path.join(__dirname, '..', 'rate_limits.json');
                 const rateLimitData = JSON.stringify(this.userRateLimits, null, 2);
                 saveDataPromises.push(fs.promises.writeFile(rateLimitPath, rateLimitData));
@@ -151,12 +142,10 @@ class DataPersistence {
         return this.board;
     }
 
-    // 提供对会话数据的访问接口
     getSessions() {
         return this.sessions;
     }
 
-    //提供对用户配额数据的访问接口
     getUserRateLimits() {
         return this.userRateLimits;
     }
