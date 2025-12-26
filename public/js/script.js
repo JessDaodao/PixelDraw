@@ -265,7 +265,7 @@ canvas.addEventListener('wheel', (e) => {
         return;
     }
     e.preventDefault();
-    const zoomSpeed = 0.003;
+    const zoomSpeed = 0.005;
     const rawDelta = -e.deltaY;
     const zoomFactor = Math.exp(rawDelta * zoomSpeed);
 
