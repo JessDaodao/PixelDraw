@@ -88,6 +88,15 @@ fetch('/api/config')
         if (config.siteTitle) {
             document.title = config.siteTitle;
         }
+        if (config.siteIcon) {
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.head.appendChild(link);
+            }
+            link.href = config.siteIcon;
+        }
         if (config.broadcastTitle) {
             const broadcastTitle = document.querySelector('#broadcast-modal .modal-header h2');
             if (broadcastTitle) {

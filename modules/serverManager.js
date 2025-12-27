@@ -36,6 +36,7 @@ class ServerManager {
         this.app.get('/api/config', (req, res) => {
             res.json({
                 siteTitle: config.SITE_TITLE,
+                siteIcon: config.SITE_ICON,
                 broadcastTitle: config.BROADCAST_TITLE
             });
         });
