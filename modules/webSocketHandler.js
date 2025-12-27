@@ -220,7 +220,7 @@ class WebSocketHandler {
             }
         } else {
             const waitTime = 60 - Math.floor((now - userLimit.lastRefillTime) / 1000) % 60;
-            socket.emit('error-message', `像素已用完！请等待 ${waitTime} 秒。`);
+            socket.emit('error-message', `像素已用完！请等待 ${waitTime} 秒`);
         }
     }
 
