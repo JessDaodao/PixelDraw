@@ -1,7 +1,17 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
+
+function generateRandomPassword(length = 8) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+}
 
 const defaultConfig = {
     port: 3000,
@@ -20,7 +30,8 @@ const defaultConfig = {
     maxBackups: 5,
     enableTimeLimit: false,
     timeLimitStart: '2026-01-01 00:00',
-    timeLimitEnd: '2026-03-01 00:00'
+    timeLimitEnd: '2026-03-01 00:00',
+    adminPassword: generateRandomPassword()
 };
 
 function loadConfig() {
@@ -35,7 +46,10 @@ function loadConfig() {
         }
     } else {
         try {
-            fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaultConfig, null, 4), 'utf8');
+            const initialConfig = { ...defaultConfig };
+            initialConfig.adminPassword = generateRandomPassword();
+            fs.writeFileSync(CONFIG_FILE, JSON.stringify(initialConfig, null, 4), 'utf8');
+            userConfig = initialConfig;
         } catch (error) {
             console.error('配置文件创建失败:', error.message);
         }
@@ -60,6 +74,7 @@ function loadConfig() {
     config.ENABLE_TIME_LIMIT = config.enableTimeLimit;
     config.TIME_LIMIT_START = config.timeLimitStart;
     config.TIME_LIMIT_END = config.timeLimitEnd;
+    config.ADMIN_PASSWORD = config.adminPassword;
     
     return config;
 }

@@ -30,6 +30,22 @@
         </div>
     </div>
 
+    <div id="admin-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>管理员模式</h2>
+                <span class="modal-close admin-modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="admin-password-input">
+                    <input type="password" id="adminPasswordInput" placeholder="请输入管理员密码">
+                    <button id="adminVerifyBtn">验证</button>
+                </div>
+            </div>
+            <div id="adminError" class="admin-error"></div>
+        </div>
+    </div>
+
     <div id="ui-layer">
         <div class="hud top-left">
             <div class="quota-circle">
@@ -97,6 +113,10 @@
                 <span class="status-text">-</span>
                 <span class="ping-text" id="ping-text"></span>
             </div>
+        </div>
+
+        <div class="hud bottom-center">
+            <button id="exitAdminBtn" class="exit-admin-btn" style="display: none;">退出管理员模式</button>
         </div>
     </div>
 

@@ -9,6 +9,7 @@ class WebSocketHandler {
         this.sessions = this.dataPersistence.getSessions();
         this.userRateLimits = this.dataPersistence.getUserRateLimits();
         this.activeConnections = new Map();
+        this.adminSessions = new Set();
         
         this.io.use(async (socket, next) => {
             const auth = socket.handshake.auth || {};
@@ -127,6 +128,14 @@ class WebSocketHandler {
             socket.on('ping', () => {
                 socket.emit('pong');
             });
+            
+            socket.on('verify-admin', (password) => {
+                this.handleAdminVerification(socket, password);
+            });
+            
+            socket.on('exit-admin-mode', () => {
+                this.handleExitAdminMode(socket);
+            });
         });
     }
 
@@ -148,6 +157,9 @@ class WebSocketHandler {
             socket.emit('error-message', '游客无法绘图，请先登录！');
             return;
         }
+        
+        const isAdmin = this.adminSessions.has(socket.id);
+        
         if (config.ENABLE_TIME_LIMIT) {
             const now = new Date();
             const [startDate, startTime] = config.TIME_LIMIT_START.split(' ');
@@ -170,6 +182,15 @@ class WebSocketHandler {
         if (currentColor === color) {
             return;
         }
+        
+        if (isAdmin) {
+            if (this.dataPersistence.updatePixel(x, y, color)) {
+                this.io.emit('pixel-update', { x, y, color });
+                this.updateUserQuota(socket);
+            }
+            return;
+        }
+        
         const now = Date.now();
         
         const rateLimitKey = socket.user.id;
@@ -245,6 +266,29 @@ class WebSocketHandler {
             if (now > limit.lastRefillTime + (5 * 60 * 1000)) {
                 delete this.userRateLimits[key];
             }
+        }
+    }
+
+    handleAdminVerification(socket, password) {
+        if (socket.user.isGuest) {
+            socket.emit('admin-verify-result', { success: false, message: '请先登录' });
+            return;
+        }
+        
+        if (password === config.ADMIN_PASSWORD) {
+            this.adminSessions.add(socket.id);
+            socket.emit('admin-verify-result', { success: true });
+            log(`用户 ${socket.user.nickname} (ID: ${socket.user.id}) 已进入管理员模式`);
+        } else {
+            socket.emit('admin-verify-result', { success: false, message: '密码错误' });
+        }
+    }
+
+    handleExitAdminMode(socket) {
+        if (this.adminSessions.has(socket.id)) {
+            this.adminSessions.delete(socket.id);
+            socket.emit('admin-mode-exited');
+            log(`用户 ${socket.user.nickname} (ID: ${socket.user.id}) 已退出管理员模式`);
         }
     }
 

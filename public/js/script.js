@@ -25,6 +25,16 @@ const userInfoWrapper = document.querySelector('.user-info-wrapper');
 const logoutDropdown = document.getElementById('logoutDropdown');
 const logoutBtn = document.getElementById('logoutBtn');
 
+const adminModal = document.getElementById('admin-modal');
+const adminPasswordInput = document.getElementById('adminPasswordInput');
+const adminVerifyBtn = document.getElementById('adminVerifyBtn');
+const exitAdminBtn = document.getElementById('exitAdminBtn');
+const adminModalClose = document.querySelector('.admin-modal-close');
+const adminError = document.getElementById('adminError');
+
+let isAdminMode = false;
+let adminErrorTimeout = null;
+
 const BROADCAST_VERSION_KEY = 'pixelDraw_broadcastVersion';
 let BOARD_WIDTH;
 let BOARD_HEIGHT;
@@ -571,22 +581,6 @@ socket.on('pixel-update', ({ x, y, color }) => {
     render();
 });
 
-socket.on('quota-update', (q, nextRefillTime) => {
-    quotaSpan.innerText = q;
-    currentQuota = q;
-    if (currentQuota >= maxQuota) {
-        stopPixelRecoveryTimer();
-        recoveryProgressBar.style.opacity = '0';
-        recoveryProgressBar.style.strokeDasharray = '0, 100';
-        recoveryCountdown = 0;
-    } else if (nextRefillTime) {
-        recoveryCountdown = nextRefillTime;
-        recoveryProgressBar.style.opacity = '1';
-        updateRecoveryProgress();
-        startRecoveryCountdown();
-    }
-});
-
 socket.on('error-message', (msg) => {
     showStatus(msg, 'error');
     const match = msg.match(/(\d+)秒后/);
@@ -1105,3 +1099,129 @@ const saveBtn = document.getElementById('saveBtn');
 if (saveBtn) {
     saveBtn.addEventListener('click', saveImage);
 }
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'F9') {
+        e.preventDefault();
+        if (isAdminMode) {
+            showStatus('您已在管理员模式中', 'warning');
+        } else {
+            showAdminModal();
+        }
+    }
+});
+
+function showAdminModal() {
+    adminPasswordInput.value = '';
+    adminModal.classList.add('show');
+    adminPasswordInput.focus();
+}
+
+function hideAdminModal() {
+    adminModal.style.animation = 'fadeOut 0.3s ease forwards';
+    const modalContent = adminModal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.style.animation = 'slideOut 0.3s ease forwards';
+    }
+    setTimeout(() => {
+        adminModal.classList.remove('show');
+        adminModal.style.animation = '';
+        if (modalContent) {
+            modalContent.style.animation = '';
+        }
+    }, 300);
+}
+
+if (adminModalClose) {
+    adminModalClose.addEventListener('click', hideAdminModal);
+}
+
+if (adminModal) {
+    adminModal.addEventListener('click', (e) => {
+        if (e.target === adminModal) {
+            hideAdminModal();
+        }
+    });
+}
+
+if (adminVerifyBtn) {
+    adminVerifyBtn.addEventListener('click', verifyAdminPassword);
+}
+
+if (adminPasswordInput) {
+    adminPasswordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            verifyAdminPassword();
+        }
+    });
+}
+
+function verifyAdminPassword() {
+    const password = adminPasswordInput.value.trim();
+    if (!password) {
+        showAdminError('请输入密码');
+        return;
+    }
+    
+    socket.emit('verify-admin', password);
+}
+
+function showAdminError(message) {
+    adminError.textContent = message;
+    adminError.classList.add('show');
+    
+    if (adminErrorTimeout) {
+        clearTimeout(adminErrorTimeout);
+    }
+    
+    adminErrorTimeout = setTimeout(() => {
+        adminError.classList.remove('show');
+        adminErrorTimeout = null;
+    }, 3000);
+}
+
+socket.on('admin-verify-result', (result) => {
+    if (result.success) {
+        isAdminMode = true;
+        hideAdminModal();
+        exitAdminBtn.style.display = 'block';
+        showStatus('已进入管理员模式', 'success');
+        socket.emit('request-quota-update');
+    } else {
+        showAdminError(result.message);
+    }
+});
+
+if (exitAdminBtn) {
+    exitAdminBtn.addEventListener('click', () => {
+        socket.emit('exit-admin-mode');
+    });
+}
+
+socket.on('admin-mode-exited', () => {
+    isAdminMode = false;
+    exitAdminBtn.style.display = 'none';
+    showStatus('已退出管理员模式', 'warning');
+    socket.emit('request-quota-update');
+});
+
+socket.on('quota-update', (q, nextRefillTime) => {
+    if (isAdminMode) {
+        quotaSpan.innerText = '∞';
+        recoveryProgressBar.style.opacity = '0';
+    } else {
+        quotaSpan.innerText = q;
+        currentQuota = q;
+        if (currentQuota >= maxQuota) {
+            stopPixelRecoveryTimer();
+            recoveryProgressBar.style.opacity = '0';
+            recoveryProgressBar.style.strokeDasharray = '0, 100';
+            recoveryCountdown = 0;
+        } else if (nextRefillTime) {
+            recoveryCountdown = nextRefillTime;
+            recoveryProgressBar.style.opacity = '1';
+            updateRecoveryProgress();
+            startRecoveryCountdown();
+        }
+    }
+});
