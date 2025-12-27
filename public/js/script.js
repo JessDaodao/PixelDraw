@@ -177,6 +177,10 @@ function resizeCanvas() {
         offsetX = (window.innerWidth - BOARD_WIDTH * scale) / 2;
         offsetY = (window.innerHeight - BOARD_HEIGHT * scale) / 2;
     }
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile && hoverPixel) {
+        hoverPixel = null;
+    }
     render();
     renderColorPresets();
 }
@@ -208,7 +212,8 @@ function render() {
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(BOARD_WIDTH, i); ctx.stroke();
         }
     }
-    if (hoverPixel && hoverPixel.x >= 0 && hoverPixel.x < BOARD_WIDTH && hoverPixel.y >= 0 && hoverPixel.y < BOARD_HEIGHT) {
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile && hoverPixel && hoverPixel.x >= 0 && hoverPixel.x < BOARD_WIDTH && hoverPixel.y >= 0 && hoverPixel.y < BOARD_HEIGHT) {
         const pixelColor = board[hoverPixel.y][hoverPixel.x] || '#eee';
         ctx.fillStyle = darkenColor(pixelColor, 30);
         ctx.fillRect(hoverPixel.x, hoverPixel.y, 1, 1);
@@ -427,14 +432,17 @@ window.addEventListener('mousemove', (e) => {
         lastMoveTime = currentTime;
         render();
     } else {
-        const worldX = Math.floor((e.clientX - offsetX) / scale);
-        const worldY = Math.floor((e.clientY - offsetY) / scale);
-        if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
-            hoverPixel = { x: worldX, y: worldY };
-        } else {
-            hoverPixel = null;
+        const isMobile = window.innerWidth <= 768;
+        if (!isMobile) {
+            const worldX = Math.floor((e.clientX - offsetX) / scale);
+            const worldY = Math.floor((e.clientY - offsetY) / scale);
+            if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+                hoverPixel = { x: worldX, y: worldY };
+            } else {
+                hoverPixel = null;
+            }
+            render();
         }
-        render();
     }
 });
 
