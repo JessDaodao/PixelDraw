@@ -17,7 +17,10 @@ const defaultConfig = {
     autoSaveInterval: 5,
     shutdownTimeout: 10000,
     enableBackup: true,
-    maxBackups: 5
+    maxBackups: 5,
+    enableTimeLimit: false,
+    timeLimitStart: '2026-01-01 00:00',
+    timeLimitEnd: '2026-03-01 00:00'
 };
 
 function loadConfig() {
@@ -54,6 +57,9 @@ function loadConfig() {
     config.SHUTDOWN_TIMEOUT = config.shutdownTimeout;
     config.ENABLE_BACKUP = config.enableBackup;
     config.MAX_BACKUPS = config.maxBackups;
+    config.ENABLE_TIME_LIMIT = config.enableTimeLimit;
+    config.TIME_LIMIT_START = config.timeLimitStart;
+    config.TIME_LIMIT_END = config.timeLimitEnd;
     
     return config;
 }

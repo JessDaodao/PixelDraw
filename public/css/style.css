@@ -377,8 +377,41 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
     pointer-events: none;
+}
+
+.countdown {
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 14px;
+    font-size: 13px;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.countdown.waiting {
+    color: rgba(255, 152, 0, 1);
+}
+
+.countdown.ended {
+    color: rgba(244, 67, 54, 1);
+}
+
+.countdown-time {
+    font-weight: bold;
+}
+
+.countdown.ended .countdown-time {
+    margin-left: -7px;
 }
 
 #status {
@@ -601,18 +634,6 @@ canvas {
     }
 }
 
-@media (max-width: 768px) {
-    .bottom-left {
-        left: 48%;
-        transform: translateX(-50%) scale(1.2);
-        align-items: center;
-    }
-
-    .connection-status {
-        display: none;
-    }
-}
-
 .modal {
     background-color: rgba(0, 0, 0, 0.3);
     display: none;
@@ -728,5 +749,29 @@ canvas {
     to {
         filter: blur(3px);
         opacity: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .bottom-left {
+        left: 48%;
+        transform: translateX(-50%) scale(1.2);
+        align-items: center;
+    }
+
+    .connection-status {
+        display: none;
+    }
+
+    .countdown {
+        font-size: 12px;
+    }
+
+    .user-avatar {
+        margin-right: -8px;
+    }
+
+    .user-name {
+        display: none;
     }
 }

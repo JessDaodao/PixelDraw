@@ -103,7 +103,64 @@ fetch('/api/config')
                 broadcastTitle.textContent = config.broadcastTitle;
             }
         }
+        if (config.enableTimeLimit) {
+            initCountdown(config.timeLimitStart, config.timeLimitEnd);
+        }
     })
+
+function parseDateTime(timeStr) {
+    const [datePart, timePart] = timeStr.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hours, minutes] = timePart.split(':').map(Number);
+    const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    return date;
+}
+
+function formatTimeRemaining(ms) {
+    if (ms <= 0) return '00:00:00';
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+    
+    if (days > 0) {
+        return `${days}天 ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function updateCountdown(startTime, endTime) {
+    const now = new Date();
+    const start = parseDateTime(startTime);
+    const end = parseDateTime(endTime);
+    
+    const countdownDiv = document.getElementById('countdown');
+    const countdownLabel = document.getElementById('countdownLabel');
+    const countdownTime = document.getElementById('countdownTime');
+    
+    countdownDiv.style.display = 'flex';
+    
+    if (now < start) {
+        const timeRemaining = start - now;
+        countdownDiv.className = 'countdown waiting';
+        countdownLabel.textContent = '即将开始';
+        countdownTime.textContent = formatTimeRemaining(timeRemaining);
+    } else if (now >= start && now < end) {
+        const timeRemaining = end - now;
+        countdownDiv.className = 'countdown';
+        countdownLabel.textContent = '进行中';
+        countdownTime.textContent = formatTimeRemaining(timeRemaining);
+    } else {
+        countdownDiv.className = 'countdown ended';
+        countdownLabel.textContent = '';
+        countdownTime.textContent = '已结束';
+    }
+}
+
+function initCountdown(startTime, endTime) {
+    updateCountdown(startTime, endTime);
+    setInterval(() => updateCountdown(startTime, endTime), 1000);
+}
 
 function updateConnectionStatus(status) {
     connectionStatusDiv.className = 'connection-status ' + status;

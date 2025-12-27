@@ -37,7 +37,10 @@ class ServerManager {
             res.json({
                 siteTitle: config.SITE_TITLE,
                 siteIcon: config.SITE_ICON,
-                broadcastTitle: config.BROADCAST_TITLE
+                broadcastTitle: config.BROADCAST_TITLE,
+                enableTimeLimit: config.ENABLE_TIME_LIMIT,
+                timeLimitStart: config.TIME_LIMIT_START,
+                timeLimitEnd: config.TIME_LIMIT_END
             });
         });
         this.app.get('/api/board/status', (req, res) => {

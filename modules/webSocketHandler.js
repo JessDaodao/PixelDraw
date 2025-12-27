@@ -148,6 +148,21 @@ class WebSocketHandler {
             socket.emit('error-message', '游客无法绘图，请先登录！');
             return;
         }
+        if (config.ENABLE_TIME_LIMIT) {
+            const now = new Date();
+            const [startDate, startTime] = config.TIME_LIMIT_START.split(' ');
+            const [endDate, endTime] = config.TIME_LIMIT_END.split(' ');
+            const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+            const startDateTime = new Date(startYear, startMonth - 1, startDay, startHour, startMinute, 0, 0);
+            const endDateTime = new Date(endYear, endMonth - 1, endDay, endHour, endMinute, 0, 0);
+            if (now < startDateTime || now >= endDateTime) {
+                socket.emit('error-message', '活动未开始或已结束');
+                return;
+            }
+        }
         if (x < 0 || x >= config.BOARD_WIDTH || y < 0 || y >= config.BOARD_HEIGHT) {
             return;
         }
