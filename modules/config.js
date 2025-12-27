@@ -16,7 +16,7 @@ const defaultConfig = {
     autoSaveInterval: 5,
     shutdownTimeout: 3000,
     enableBackup: true,
-    maxBackups: 10
+    maxBackups: 5
 };
 
 function loadConfig() {

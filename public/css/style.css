@@ -338,6 +338,34 @@ canvas {
     border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
+.save-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 12px;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    border-radius: 30px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.save-btn img {
+    width: 15px;
+    height: 15px;
+}
+
+.save-btn:hover {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
 #recoveryTimer[style*="display: none"] {
     opacity: 0;
 }

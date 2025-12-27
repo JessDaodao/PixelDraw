@@ -1007,3 +1007,35 @@ if (logoutBtn) {
         window.location.reload();
     });
 }
+
+function saveImage() {
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = BOARD_WIDTH;
+    offscreenCanvas.height = BOARD_HEIGHT;
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+    
+    offscreenCtx.fillStyle = '#FFFFFF';
+    offscreenCtx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+    
+    board.forEach((row, y) => {
+        if (y < BOARD_HEIGHT) {
+            row.forEach((color, x) => {
+                if (x < BOARD_WIDTH && color !== '#FFFFFF') {
+                    offscreenCtx.fillStyle = color;
+                    offscreenCtx.fillRect(x, y, 1, 1);
+                }
+            });
+        }
+    });
+    
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    link.download = `pixeldraw-${timestamp}.png`;
+    link.href = offscreenCanvas.toDataURL('image/png');
+    link.click();
+}
+
+const saveBtn = document.getElementById('saveBtn');
+if (saveBtn) {
+    saveBtn.addEventListener('click', saveImage);
+}
