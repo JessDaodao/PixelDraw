@@ -15,7 +15,7 @@ const defaultConfig = {
     rateLimitWindow: 2,
     maxPixelsPerWindow: 100,
     autoSaveInterval: 5,
-    shutdownTimeout: 3000,
+    shutdownTimeout: 10000,
     enableBackup: true,
     maxBackups: 5
 };
