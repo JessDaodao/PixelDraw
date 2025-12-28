@@ -34,6 +34,8 @@ const adminError = document.getElementById('adminError');
 
 let isAdminMode = false;
 let adminErrorTimeout = null;
+let cooldownTimer = null;
+let currentCooldown = 0;
 
 const BROADCAST_VERSION_KEY = 'pixelDraw_broadcastVersion';
 let BOARD_WIDTH;
@@ -1180,6 +1182,37 @@ function showAdminError(message) {
     }, 3000);
 }
 
+function startCooldownTimer(seconds) {
+    if (cooldownTimer) {
+        clearInterval(cooldownTimer);
+    }
+    
+    currentCooldown = seconds;
+    
+    adminPasswordInput.disabled = true;
+    adminVerifyBtn.disabled = true;
+    
+    adminError.textContent = `密码错误次数过多，请等待 ${seconds} 秒后再试`;
+    adminError.classList.add('show', 'cooldown-active');
+    
+    cooldownTimer = setInterval(() => {
+        currentCooldown--;
+        
+        if (currentCooldown <= 0) {
+            clearInterval(cooldownTimer);
+            cooldownTimer = null;
+            
+            adminPasswordInput.disabled = false;
+            adminVerifyBtn.disabled = false;
+            
+            adminError.classList.remove('show', 'cooldown-active');
+            adminError.textContent = '';
+        } else {
+            adminError.textContent = `密码错误次数过多，请等待 ${currentCooldown} 秒后再试`;
+        }
+    }, 1000);
+}
+
 socket.on('admin-verify-result', (result) => {
     if (result.success) {
         isAdminMode = true;
@@ -1188,7 +1221,11 @@ socket.on('admin-verify-result', (result) => {
         showStatus('已进入管理员模式', 'success');
         socket.emit('request-quota-update');
     } else {
-        showAdminError(result.message);
+        if (result.cooldown) {
+            startCooldownTimer(result.cooldown);
+        } else {
+            showAdminError(result.message);
+        }
     }
 });
 

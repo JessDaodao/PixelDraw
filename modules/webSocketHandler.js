@@ -1,6 +1,6 @@
-const { log, logError } = require('./logger');
+const { log, logError, logWarn } = require('./logger');
 const config = require('./config');
-const https = require('https'); // 引入https模块用于请求API
+const https = require('https');
 
 class WebSocketHandler {
     constructor(io, dataPersistence) {
@@ -10,6 +10,8 @@ class WebSocketHandler {
         this.userRateLimits = this.dataPersistence.getUserRateLimits();
         this.activeConnections = new Map();
         this.adminSessions = new Set();
+        this.adminAttempts = new Map();
+        this.adminCooldowns = new Map();
         
         this.io.use(async (socket, next) => {
             const auth = socket.handshake.auth || {};
@@ -275,12 +277,49 @@ class WebSocketHandler {
             return;
         }
         
+        const userId = socket.user.id;
+        
+        if (this.adminCooldowns.has(userId)) {
+            const cooldownEnd = this.adminCooldowns.get(userId);
+            const remainingTime = Math.ceil((cooldownEnd - Date.now()) / 1000);
+            if (remainingTime > 0) {
+                socket.emit('admin-verify-result', { 
+                    success: false, 
+                    message: `密码错误次数过多，请等待 ${remainingTime} 秒后再试`,
+                    cooldown: remainingTime
+                });
+                return;
+            } else {
+                this.adminCooldowns.delete(userId);
+                this.adminAttempts.delete(userId);
+            }
+        }
+        
         if (password === config.ADMIN_PASSWORD) {
+            this.adminAttempts.delete(userId);
+            this.adminCooldowns.delete(userId);
             this.adminSessions.add(socket.id);
             socket.emit('admin-verify-result', { success: true });
             log(`用户 ${socket.user.nickname} (ID: ${socket.user.id}) 已进入管理员模式`);
         } else {
-            socket.emit('admin-verify-result', { success: false, message: '密码错误' });
+            const attempts = (this.adminAttempts.get(userId) || 0) + 1;
+            this.adminAttempts.set(userId, attempts);
+            
+            if (attempts >= config.ADMIN_MAX_ATTEMPTS) {
+                const cooldownDuration = config.ADMIN_COOLDOWN_MINUTES * 60 * 1000;
+                this.adminCooldowns.set(userId, Date.now() + cooldownDuration);
+                socket.emit('admin-verify-result', { 
+                    success: false, 
+                    message: `密码错误次数过多`,
+                    cooldown: config.ADMIN_COOLDOWN_MINUTES * 60
+                });
+                logWarn(`用户 ${socket.user.nickname} (ID: ${socket.user.id}) 因多次密码错误被禁止登录${config.ADMIN_COOLDOWN_MINUTES}分钟`);
+            } else {
+                socket.emit('admin-verify-result', { 
+                    success: false, 
+                    message: `密码错误，您还有 ${config.ADMIN_MAX_ATTEMPTS - attempts} 次尝试机会`
+                });
+            }
         }
     }
 

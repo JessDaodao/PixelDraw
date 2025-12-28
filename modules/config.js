@@ -22,7 +22,7 @@ const defaultConfig = {
     boardHeight: 500,
     minZoom: 0.5,
     maxZoom: 20,
-    rateLimitWindow: 2,
+    rateLimitWindow: 10,
     maxPixelsPerWindow: 100,
     autoSaveInterval: 5,
     shutdownTimeout: 10000,
@@ -31,7 +31,9 @@ const defaultConfig = {
     enableTimeLimit: false,
     timeLimitStart: '2026-01-01 00:00',
     timeLimitEnd: '2026-03-01 00:00',
-    adminPassword: generateRandomPassword()
+    adminPassword: generateRandomPassword(),
+    adminMaxAttempts: 5,
+    adminCooldownMinutes: 5
 };
 
 function loadConfig() {
@@ -75,6 +77,8 @@ function loadConfig() {
     config.TIME_LIMIT_START = config.timeLimitStart;
     config.TIME_LIMIT_END = config.timeLimitEnd;
     config.ADMIN_PASSWORD = config.adminPassword;
+    config.ADMIN_MAX_ATTEMPTS = config.adminMaxAttempts;
+    config.ADMIN_COOLDOWN_MINUTES = config.adminCooldownMinutes;
     
     return config;
 }
