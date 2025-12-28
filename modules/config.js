@@ -25,7 +25,6 @@ const defaultConfig = {
     rateLimitWindow: 10,
     maxPixelsPerWindow: 100,
     autoSaveInterval: 5,
-    shutdownTimeout: 10000,
     enableBackup: true,
     maxBackups: 5,
     enableTimeLimit: false,
@@ -70,7 +69,6 @@ function loadConfig() {
     config.RATE_LIMIT_WINDOW = config.rateLimitWindow;
     config.MAX_PIXELS_PER_WINDOW = config.maxPixelsPerWindow;
     config.AUTO_SAVE_INTERVAL = config.autoSaveInterval;
-    config.SHUTDOWN_TIMEOUT = config.shutdownTimeout;
     config.ENABLE_BACKUP = config.enableBackup;
     config.MAX_BACKUPS = config.maxBackups;
     config.ENABLE_TIME_LIMIT = config.enableTimeLimit;
