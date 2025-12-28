@@ -172,7 +172,7 @@ class ServerManager {
                 const forceExitTimeout = setTimeout(() => {
                     log('服务端已关闭');
                     process.exit(0);
-                }, config.SHUTDOWN_TIMEOUT);
+                }, 50000);
                 setTimeout(() => {
                     log('服务端已关闭');
                     clearTimeout(forceExitTimeout);
