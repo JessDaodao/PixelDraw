@@ -125,22 +125,23 @@ fetch('/api/config')
         }
         if (config.enableTimeLimit) {
             initCountdown(config.timeLimitStart, config.timeLimitEnd);
-        }
-        if (config.enablePixelCountdown) {
-            enablePixelCountdown = true;
-            pixelCountdownPosition = config.pixelCountdownPosition || 'top-right';
-            pixelCountdownColor = config.pixelCountdownColor || '#000000';
-            pixelCountdownFontSize = config.pixelCountdownFontSize || 12;
-            pixelCountdownOffsetX = config.pixelCountdownOffsetX || 0;
-            pixelCountdownOffsetY = config.pixelCountdownOffsetY || 0;
-            timeLimitStart = config.timeLimitStart;
-            timeLimitEnd = config.timeLimitEnd;
             
-            setInterval(() => {
-                if (enablePixelCountdown && timeLimitStart && timeLimitEnd) {
-                    render();
-                }
-            }, 1000);
+            if (config.enablePixelCountdown) {
+                enablePixelCountdown = true;
+                pixelCountdownPosition = config.pixelCountdownPosition || 'top-right';
+                pixelCountdownColor = config.pixelCountdownColor || '#000000';
+                pixelCountdownFontSize = config.pixelCountdownFontSize || 12;
+                pixelCountdownOffsetX = config.pixelCountdownOffsetX || 0;
+                pixelCountdownOffsetY = config.pixelCountdownOffsetY || 0;
+                timeLimitStart = config.timeLimitStart;
+                timeLimitEnd = config.timeLimitEnd;
+                
+                setInterval(() => {
+                    if (enablePixelCountdown && timeLimitStart && timeLimitEnd) {
+                        render();
+                    }
+                }, 1000);
+            }
         }
     })
 

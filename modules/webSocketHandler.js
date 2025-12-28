@@ -162,7 +162,7 @@ class WebSocketHandler {
         
         const isAdmin = this.adminSessions.has(socket.id);
         
-        if (config.ENABLE_TIME_LIMIT) {
+        if (config.ENABLE_TIME_LIMIT && !isAdmin) {
             const now = new Date();
             const [startDate, startTime] = config.TIME_LIMIT_START.split(' ');
             const [endDate, endTime] = config.TIME_LIMIT_END.split(' ');

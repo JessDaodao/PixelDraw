@@ -22,7 +22,7 @@ const defaultConfig = {
     boardHeight: 500,
     minZoom: 0.5,
     maxZoom: 20,
-    rateLimitWindow: 10,
+    rateLimitWindow: 30,
     maxPixelsPerWindow: 100,
     autoSaveInterval: 5,
     enableBackup: true,
