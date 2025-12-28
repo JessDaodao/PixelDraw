@@ -40,7 +40,13 @@ class ServerManager {
                 broadcastTitle: config.BROADCAST_TITLE,
                 enableTimeLimit: config.ENABLE_TIME_LIMIT,
                 timeLimitStart: config.TIME_LIMIT_START,
-                timeLimitEnd: config.TIME_LIMIT_END
+                timeLimitEnd: config.TIME_LIMIT_END,
+                enablePixelCountdown: config.ENABLE_PIXEL_COUNTDOWN,
+                pixelCountdownPosition: config.PIXEL_COUNTDOWN_POSITION,
+                pixelCountdownColor: config.PIXEL_COUNTDOWN_COLOR,
+                pixelCountdownFontSize: config.PIXEL_COUNTDOWN_FONT_SIZE,
+                pixelCountdownOffsetX: config.PIXEL_COUNTDOWN_OFFSET_X,
+                pixelCountdownOffsetY: config.PIXEL_COUNTDOWN_OFFSET_Y
             });
         });
         this.app.get('/api/board/status', (req, res) => {

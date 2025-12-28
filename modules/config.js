@@ -30,6 +30,12 @@ const defaultConfig = {
     enableTimeLimit: false,
     timeLimitStart: '2026-01-01 00:00',
     timeLimitEnd: '2026-03-01 00:00',
+    enablePixelCountdown: false,
+    pixelCountdownPosition: 'top-right',
+    pixelCountdownColor: '#666666ff',
+    pixelCountdownFontSize: 12,
+    pixelCountdownOffsetX: 0,
+    pixelCountdownOffsetY: 0,
     adminPassword: generateRandomPassword(),
     adminMaxAttempts: 5,
     adminCooldownMinutes: 5
@@ -74,6 +80,12 @@ function loadConfig() {
     config.ENABLE_TIME_LIMIT = config.enableTimeLimit;
     config.TIME_LIMIT_START = config.timeLimitStart;
     config.TIME_LIMIT_END = config.timeLimitEnd;
+    config.ENABLE_PIXEL_COUNTDOWN = config.enablePixelCountdown;
+    config.PIXEL_COUNTDOWN_POSITION = config.pixelCountdownPosition;
+    config.PIXEL_COUNTDOWN_COLOR = config.pixelCountdownColor;
+    config.PIXEL_COUNTDOWN_FONT_SIZE = config.pixelCountdownFontSize;
+    config.PIXEL_COUNTDOWN_OFFSET_X = config.pixelCountdownOffsetX;
+    config.PIXEL_COUNTDOWN_OFFSET_Y = config.pixelCountdownOffsetY;
     config.ADMIN_PASSWORD = config.adminPassword;
     config.ADMIN_MAX_ATTEMPTS = config.adminMaxAttempts;
     config.ADMIN_COOLDOWN_MINUTES = config.adminCooldownMinutes;

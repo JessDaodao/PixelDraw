@@ -57,7 +57,6 @@ let hoverPixel = null;
 let initialPinchDistance = 0;
 let initialScale = 1;
 let initialTouchCenter = { x: 0, y: 0 };
-let initialOffset = { x: 0, y: 0 };
 let isPinching = false;
 let wasPinching = false;
 let touchStartTime = 0;
@@ -88,6 +87,15 @@ let inertiaAnimationId = null;
 const friction = 0.95;
 const minVelocity = 0.1;
 
+let enablePixelCountdown = false;
+let pixelCountdownPosition = 'top-right';
+let pixelCountdownColor = '#000000';
+let pixelCountdownFontSize = 12;
+let pixelCountdownOffsetX = 0;
+let pixelCountdownOffsetY = 0;
+let timeLimitStart = null;
+let timeLimitEnd = null;
+
 if (loginBtn) {
     loginBtn.addEventListener('click', () => {
         window.location.href = 'https://eqmemory.cn/eu-authorize/?callback=' + encodeURIComponent(window.location.href);
@@ -117,6 +125,22 @@ fetch('/api/config')
         }
         if (config.enableTimeLimit) {
             initCountdown(config.timeLimitStart, config.timeLimitEnd);
+        }
+        if (config.enablePixelCountdown) {
+            enablePixelCountdown = true;
+            pixelCountdownPosition = config.pixelCountdownPosition || 'top-right';
+            pixelCountdownColor = config.pixelCountdownColor || '#000000';
+            pixelCountdownFontSize = config.pixelCountdownFontSize || 12;
+            pixelCountdownOffsetX = config.pixelCountdownOffsetX || 0;
+            pixelCountdownOffsetY = config.pixelCountdownOffsetY || 0;
+            timeLimitStart = config.timeLimitStart;
+            timeLimitEnd = config.timeLimitEnd;
+            
+            setInterval(() => {
+                if (enablePixelCountdown && timeLimitStart && timeLimitEnd) {
+                    render();
+                }
+            }, 1000);
         }
     })
 
@@ -172,6 +196,9 @@ function updateCountdown(startTime, endTime) {
 function initCountdown(startTime, endTime) {
     updateCountdown(startTime, endTime);
     setInterval(() => updateCountdown(startTime, endTime), 1000);
+    if (enablePixelCountdown) {
+        setInterval(() => render(), 1000);
+    }
 }
 
 function updateConnectionStatus(status) {
@@ -296,6 +323,9 @@ function render() {
         ctx.fillStyle = darkenColor(pixelColor, 30);
         ctx.fillRect(hoverPixel.x, hoverPixel.y, 1, 1);
     }
+    if (enablePixelCountdown && timeLimitStart && timeLimitEnd) {
+        drawPixelCountdown();
+    }
     ctx.restore();
 }
 
@@ -306,6 +336,214 @@ function darkenColor(color, percent) {
     const G = Math.max((num >> 8 & 0x00FF) - amt, 0);
     const B = Math.max((num & 0x0000FF) - amt, 0);
     return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
+function drawPixelCountdown() {
+    const now = new Date();
+    const start = parseDateTime(timeLimitStart);
+    const end = parseDateTime(timeLimitEnd);
+    
+    let text = '';
+    let textColor = pixelCountdownColor;
+    
+    if (now < start) {
+        const timeRemaining = start - now;
+        text = formatTimeRemaining(timeRemaining);
+    } else {
+        return;
+    }
+    
+    const pixelFont = {
+        '0': [
+            [0,1,1,1,0],
+            [1,0,0,0,1],
+            [1,0,0,1,1],
+            [1,0,1,0,1],
+            [1,1,0,0,1],
+            [1,0,0,0,1],
+            [0,1,1,1,0]
+        ],
+        '1': [
+            [0,0,1,0,0],
+            [0,1,1,0,0],
+            [0,0,1,0,0],
+            [0,0,1,0,0],
+            [0,0,1,0,0],
+            [0,0,1,0,0],
+            [0,1,1,1,0]
+        ],
+        '2': [
+            [0,1,1,1,0],
+            [1,0,0,0,1],
+            [0,0,0,0,1],
+            [0,0,0,1,0],
+            [0,0,1,0,0],
+            [0,1,0,0,0],
+            [1,1,1,1,1]
+        ],
+        '3': [
+            [0,1,1,1,0],
+            [1,0,0,0,1],
+            [0,0,0,0,1],
+            [0,0,1,1,0],
+            [0,0,0,0,1],
+            [1,0,0,0,1],
+            [0,1,1,1,0]
+        ],
+        '4': [
+            [0,0,0,1,0],
+            [0,0,1,1,0],
+            [0,1,0,1,0],
+            [1,0,0,1,0],
+            [1,1,1,1,1],
+            [0,0,0,1,0],
+            [0,0,0,1,0]
+        ],
+        '5': [
+            [1,1,1,1,1],
+            [1,0,0,0,0],
+            [1,1,1,1,0],
+            [0,0,0,0,1],
+            [0,0,0,0,1],
+            [1,0,0,0,1],
+            [0,1,1,1,0]
+        ],
+        '6': [
+            [0,1,1,1,0],
+            [1,0,0,0,0],
+            [1,0,0,0,0],
+            [1,1,1,1,0],
+            [1,0,0,0,1],
+            [1,0,0,0,1],
+            [0,1,1,1,0]
+        ],
+        '7': [
+            [1,1,1,1,1],
+            [0,0,0,0,1],
+            [0,0,0,1,0],
+            [0,0,1,0,0],
+            [0,1,0,0,0],
+            [0,1,0,0,0],
+            [0,1,0,0,0]
+        ],
+        '8': [
+            [0,1,1,1,0],
+            [1,0,0,0,1],
+            [1,0,0,0,1],
+            [0,1,1,1,0],
+            [1,0,0,0,1],
+            [1,0,0,0,1],
+            [0,1,1,1,0]
+        ],
+        '9': [
+            [0,1,1,1,0],
+            [1,0,0,0,1],
+            [1,0,0,0,1],
+            [0,1,1,1,1],
+            [0,0,0,0,1],
+            [0,0,0,0,1],
+            [0,1,1,1,0]
+        ],
+        ':': [
+            [0,0,0,0,0],
+            [0,0,1,0,0],
+            [0,0,1,0,0],
+            [0,0,0,0,0],
+            [0,0,1,0,0],
+            [0,0,1,0,0],
+            [0,0,0,0,0]
+        ],
+        '天': [
+            [0,1,1,1,1,1,0],
+            [0,0,0,1,0,0,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,1,0,0,0],
+            [0,0,1,0,1,0,0],
+            [0,1,0,0,0,1,0],
+            [1,0,0,0,0,0,1]
+        ]
+    };
+    
+    const charWidth = 5;
+    const charHeight = 7;
+    const charSpacing = 1;
+    const lineSpacing = 2;
+    const pixelSize = Math.max(1, Math.floor(pixelCountdownFontSize / 7));
+    
+    const lines = text.split('\n');
+    let totalWidth = 0;
+    let totalHeight = lines.length * (charHeight + lineSpacing) - lineSpacing;
+    totalHeight *= pixelSize;
+    
+    lines.forEach(line => {
+        let lineWidth = 0;
+        for (let char of line) {
+            const fontChar = pixelFont[char];
+            if (fontChar) {
+                lineWidth += fontChar[0].length + charSpacing;
+            }
+        }
+        if (lineWidth > totalWidth) {
+            totalWidth = lineWidth;
+        }
+    });
+    totalWidth *= pixelSize;
+    
+    let startX, startY;
+    const padding = 2 * pixelSize;
+    
+    switch (pixelCountdownPosition) {
+        case 'top-left':
+            startX = padding;
+            startY = padding;
+            break;
+        case 'top-right':
+            startX = BOARD_WIDTH - totalWidth - padding;
+            startY = padding;
+            break;
+        case 'bottom-left':
+            startX = padding;
+            startY = BOARD_HEIGHT - totalHeight - padding;
+            break;
+        case 'bottom-right':
+            startX = BOARD_WIDTH - totalWidth - padding;
+            startY = BOARD_HEIGHT - totalHeight - padding;
+            break;
+        case 'center':
+            startX = Math.floor((BOARD_WIDTH - totalWidth) / 2);
+            startY = Math.floor((BOARD_HEIGHT - totalHeight) / 2);
+            break;
+        default:
+            startX = BOARD_WIDTH - totalWidth - padding;
+            startY = padding;
+    }
+    
+    startX += pixelCountdownOffsetX;
+    startY += pixelCountdownOffsetY;
+    
+    lines.forEach((line, lineIndex) => {
+        let currentX = startX;
+        let currentY = startY + lineIndex * (charHeight + lineSpacing) * pixelSize;
+        
+        for (let char of line) {
+            const fontChar = pixelFont[char];
+            if (fontChar) {
+                for (let row = 0; row < fontChar.length; row++) {
+                    for (let col = 0; col < fontChar[row].length; col++) {
+                        if (fontChar[row][col] === 1) {
+                            const x = currentX + col * pixelSize;
+                            const y = currentY + row * pixelSize;
+                            if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+                                ctx.fillStyle = textColor;
+                                ctx.fillRect(x, y, pixelSize, pixelSize);
+                            }
+                        }
+                    }
+                }
+                currentX += (fontChar[0].length + charSpacing) * pixelSize;
+            }
+        }
+    });
 }
 
 function applyInertia() {
