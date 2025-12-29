@@ -41,6 +41,7 @@ class ServerManager {
                 enableTimeLimit: config.ENABLE_TIME_LIMIT,
                 timeLimitStart: config.TIME_LIMIT_START,
                 timeLimitEnd: config.TIME_LIMIT_END,
+                clearBoardOnStart: config.CLEAR_BOARD_ON_START,
                 enablePixelCountdown: config.ENABLE_PIXEL_COUNTDOWN,
                 pixelCountdownPosition: config.PIXEL_COUNTDOWN_POSITION,
                 pixelCountdownColor: config.PIXEL_COUNTDOWN_COLOR,

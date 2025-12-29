@@ -30,9 +30,10 @@ const defaultConfig = {
     enableTimeLimit: false,
     timeLimitStart: '2026-01-01 00:00',
     timeLimitEnd: '2026-03-01 00:00',
+    clearBoardOnStart: false,
     enablePixelCountdown: false,
     pixelCountdownPosition: 'top-right',
-    pixelCountdownColor: '#666666ff',
+    pixelCountdownColor: '#666666',
     pixelCountdownFontSize: 12,
     pixelCountdownOffsetX: 0,
     pixelCountdownOffsetY: 0,
@@ -80,6 +81,7 @@ function loadConfig() {
     config.ENABLE_TIME_LIMIT = config.enableTimeLimit;
     config.TIME_LIMIT_START = config.timeLimitStart;
     config.TIME_LIMIT_END = config.timeLimitEnd;
+    config.CLEAR_BOARD_ON_START = config.clearBoardOnStart;
     config.ENABLE_PIXEL_COUNTDOWN = config.enablePixelCountdown;
     config.PIXEL_COUNTDOWN_POSITION = config.pixelCountdownPosition;
     config.PIXEL_COUNTDOWN_COLOR = config.pixelCountdownColor;

@@ -168,6 +168,12 @@ class DataPersistence {
         }
         return null;
     }
+
+    clearBoard() {
+        this.board = Array(config.BOARD_HEIGHT).fill(null).map(() => 
+            Array(config.BOARD_WIDTH).fill('#FFFFFF')
+        );
+    }
 }
 
 module.exports = DataPersistence;

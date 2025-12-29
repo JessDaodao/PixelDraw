@@ -12,6 +12,7 @@ class WebSocketHandler {
         this.adminSessions = new Set();
         this.adminAttempts = new Map();
         this.adminCooldowns = new Map();
+        this.boardClearedOnStart = false;
         
         this.io.use(async (socket, next) => {
             const auth = socket.handshake.auth || {};
@@ -35,6 +36,7 @@ class WebSocketHandler {
             next();
         });
         this.setupSocketHandlers();
+        this.startActivityMonitor();
     }
 
     async verifyToken(token) {
@@ -329,6 +331,56 @@ class WebSocketHandler {
             socket.emit('admin-mode-exited');
             log(`用户 ${socket.user.nickname} (ID: ${socket.user.id}) 已退出管理员模式`);
         }
+    }
+
+    async handleActivityStarted() {
+        if (config.CLEAR_BOARD_ON_START && !this.boardClearedOnStart) {
+            this.boardClearedOnStart = true;
+            log('正在生成备份并清空画板');
+            
+            try {
+                await this.dataPersistence.saveBoardData(true);
+                this.dataPersistence.clearBoard();
+                
+                this.io.emit('init-board', {
+                    board: this.dataPersistence.getBoard(),
+                    boardWidth: config.BOARD_WIDTH,
+                    boardHeight: config.BOARD_HEIGHT,
+                    minZoom: config.MIN_ZOOM,
+                    maxZoom: config.MAX_ZOOM,
+                    maxPixels: config.MAX_PIXELS_PER_WINDOW
+                });
+            } catch (error) {
+                logError('清空画板失败: ' + error);
+            }
+        }
+    }
+
+    startActivityMonitor() {
+        if (!config.ENABLE_TIME_LIMIT || !config.CLEAR_BOARD_ON_START) {
+            return;
+        }
+
+        if (this.activityMonitorInterval) {
+            clearInterval(this.activityMonitorInterval);
+        }
+
+        this.activityMonitorInterval = setInterval(() => {
+            const now = new Date();
+            
+            const [startDate, startTime] = config.TIME_LIMIT_START.split(' ');
+            const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const startDateTime = new Date(startYear, startMonth - 1, startDay, startHour, startMinute, 0, 0);
+            
+            const timeUntilStart = startDateTime - now;
+            
+            if (timeUntilStart <= 0 && timeUntilStart > -60000) {
+                this.handleActivityStarted();
+                clearInterval(this.activityMonitorInterval);
+                this.activityMonitorInterval = null;
+            }
+        }, 500);
     }
 
     async disconnectAllUsers() {

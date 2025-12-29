@@ -59,13 +59,15 @@
     "timeLimitStart": "2026-01-01 00:00",
     // 活动结束时间
     "timeLimitEnd": "2026-03-01 00:00",
+    // 是否在活动开始时清空画板
+    "clearBoardOnStart": true,
     // 是否启用基于画板的倒计时
     "enablePixelCountdown": false,
     // 画板倒计时位置
     // 可用参数：top-right, top-left, bottom-right, bottom-left, center
     "pixelCountdownPosition": "top-right",
     // 画板倒计时颜色
-    "pixelCountdownColor": "#666666ff",
+    "pixelCountdownColor": "#666666",
     // 画板倒计时字体大小
     "pixelCountdownFontSize": 12,
     // 画板倒计时水平偏移量
