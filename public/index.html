@@ -118,6 +118,17 @@
         <div class="hud bottom-center">
             <button id="exitAdminBtn" class="exit-admin-btn" style="display: none;">退出管理员模式</button>
         </div>
+
+        <div class="hud middle-right">
+            <div id="adminTools" class="admin-tools" style="display: none;">
+                <button id="fillTool" class="tool-btn active" data-tool="fill">
+                    <img src="img/tool/pixel.svg">
+                </button>
+                <button id="brushTool" class="tool-btn" data-tool="brush">
+                    <img src="img/tool/draw.svg">
+                </button>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>

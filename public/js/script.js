@@ -31,11 +31,16 @@ const adminVerifyBtn = document.getElementById('adminVerifyBtn');
 const exitAdminBtn = document.getElementById('exitAdminBtn');
 const adminModalClose = document.querySelector('.admin-modal-close');
 const adminError = document.getElementById('adminError');
+const adminTools = document.getElementById('adminTools');
+const fillTool = document.getElementById('fillTool');
+const brushTool = document.getElementById('brushTool');
 
 let isAdminMode = false;
 let adminErrorTimeout = null;
 let cooldownTimer = null;
 let currentCooldown = 0;
+let currentTool = 'fill';
+let isDrawing = false;
 
 const BROADCAST_VERSION_KEY = 'pixelDraw_broadcastVersion';
 let BOARD_WIDTH;
@@ -711,14 +716,26 @@ canvas.addEventListener('wheel', (e) => {
 
 canvas.addEventListener('mousedown', (e) => {
     if (e.button === 0) {
-        const worldX = Math.floor((e.clientX - offsetX) / scale);
-        const worldY = Math.floor((e.clientY - offsetY) / scale);
-        if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
-            const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
-            if (board[worldY] && board[worldY][worldX] === drawColor) {
-                return;
+        if (isAdminMode && currentTool === 'brush') {
+            isDrawing = true;
+            const worldX = Math.floor((e.clientX - offsetX) / scale);
+            const worldY = Math.floor((e.clientY - offsetY) / scale);
+            if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+                const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
+                if (board[worldY] && board[worldY][worldX] !== drawColor) {
+                    socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+                }
             }
-            socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+        } else {
+            const worldX = Math.floor((e.clientX - offsetX) / scale);
+            const worldY = Math.floor((e.clientY - offsetY) / scale);
+            if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+                const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
+                if (board[worldY] && board[worldY][worldX] === drawColor) {
+                    return;
+                }
+                socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+            }
         }
     } else if (e.button === 1) {
         isDragging = true;
@@ -734,7 +751,16 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 window.addEventListener('mousemove', (e) => {
-    if (isDragging) {
+    if (isDrawing && isAdminMode && currentTool === 'brush') {
+        const worldX = Math.floor((e.clientX - offsetX) / scale);
+        const worldY = Math.floor((e.clientY - offsetY) / scale);
+        if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+            const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
+            if (board[worldY] && board[worldY][worldX] !== drawColor) {
+                socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+            }
+        }
+    } else if (isDragging) {
         const currentTime = performance.now();
         const deltaTime = currentTime - lastMoveTime;
         const deltaX = e.clientX - lastMousePos.x;
@@ -764,6 +790,9 @@ window.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('mouseup', () => {
+    if (isDrawing) {
+        isDrawing = false;
+    }
     if (isDragging) {
         isDragging = false;
         if (Math.abs(velocityX) >= minVelocity || Math.abs(velocityY) >= minVelocity) {
@@ -1119,14 +1148,25 @@ canvas.addEventListener('touchend', (e) => {
             initialPinchDistance = 0;
             snapToBounds();
         } else if (!wasPinching && !isTouchDragging && Date.now() - touchStartTime < 300) {
-            const worldX = Math.floor((touchStartPos.x - offsetX) / scale);
-            const worldY = Math.floor((touchStartPos.y - offsetY) / scale);
-            if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
-                const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
-                if (board[worldY] && board[worldY][worldX] === drawColor) {
-                    return;
+            if (isAdminMode && currentTool === 'brush') {
+                const worldX = Math.floor((touchStartPos.x - offsetX) / scale);
+                const worldY = Math.floor((touchStartPos.y - offsetY) / scale);
+                if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+                    const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
+                    if (board[worldY] && board[worldY][worldX] !== drawColor) {
+                        socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+                    }
                 }
-                socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+            } else {
+                const worldX = Math.floor((touchStartPos.x - offsetX) / scale);
+                const worldY = Math.floor((touchStartPos.y - offsetY) / scale);
+                if (worldX >= 0 && worldX < BOARD_WIDTH && worldY >= 0 && worldY < BOARD_HEIGHT) {
+                    const drawColor = isEraserSelected ? '#FFFFFF' : selectedColor;
+                    if (board[worldY] && board[worldY][worldX] === drawColor) {
+                        return;
+                    }
+                    socket.emit('draw-pixel', { x: worldX, y: worldY, color: drawColor });
+                }
             }
         }
         if (isTouchDragging) {
@@ -1457,6 +1497,7 @@ socket.on('admin-verify-result', (result) => {
         isAdminMode = true;
         hideAdminModal();
         exitAdminBtn.style.display = 'block';
+        adminTools.style.display = 'flex';
         showStatus('已进入管理员模式', 'success');
         socket.emit('request-quota-update');
     } else {
@@ -1474,9 +1515,34 @@ if (exitAdminBtn) {
     });
 }
 
+if (fillTool) {
+    fillTool.addEventListener('click', () => {
+        setTool('fill');
+    });
+}
+
+if (brushTool) {
+    brushTool.addEventListener('click', () => {
+        setTool('brush');
+    });
+}
+
+function setTool(tool) {
+    currentTool = tool;
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (tool === 'fill') {
+        fillTool.classList.add('active');
+    } else if (tool === 'brush') {
+        brushTool.classList.add('active');
+    }
+}
+
 socket.on('admin-mode-exited', () => {
     isAdminMode = false;
     exitAdminBtn.style.display = 'none';
+    adminTools.style.display = 'none';
     showStatus('已退出管理员模式', 'warning');
     socket.emit('request-quota-update');
 });

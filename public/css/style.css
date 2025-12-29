@@ -98,6 +98,59 @@ canvas {
     pointer-events: auto;
 }
 
+.middle-right {
+    top: 50%;
+    right: 7px;
+    transform: translateY(-50%);
+}
+
+.admin-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-radius: 12px;
+}
+
+.tool-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.tool-btn img {
+    width: 14px;
+    height: 14px;
+}
+
+.tool-btn.active {
+    position: relative;
+    transform: scale(1.1);
+    border: 2px solid transparent;
+}
+
+.tool-btn.active::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 2px dashed #ffeb3b;
+    border-radius: 50%;
+    animation: dashRotate 9s linear infinite;
+    pointer-events: none;
+}
+
 .bottom-right {
     bottom: 7px;
     right: 7px;
