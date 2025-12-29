@@ -910,9 +910,12 @@ canvas {
 
     .user-name,
     .bottom-center,
-    .connection-status,
-    .admin-tools {
+    .connection-status {
         display: none;
+    }
+
+    .admin-tools {
+        opacity: 0;
     }
 
     .countdown {
