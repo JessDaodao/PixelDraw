@@ -1,4 +1,10 @@
+<div align="center">
+
+<img src="https://pic.eqad.fun/EQAD_Web/PixelDraw.png" width="auto" height="200" alt="PixelDraw">
+
 # PixelDraw
+
+</div>
 
 ### 如何部署
 
