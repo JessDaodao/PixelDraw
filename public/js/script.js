@@ -122,6 +122,12 @@ fetch('/api/config')
             }
             link.href = config.siteIcon;
         }
+        if (config.loadingIcon) {
+            const loadingIcon = document.getElementById('loading-icon');
+            if (loadingIcon) {
+                loadingIcon.src = config.loadingIcon;
+            }
+        }
         if (config.broadcastTitle) {
             const broadcastTitle = document.querySelector('#broadcast-modal .modal-header h2');
             if (broadcastTitle) {
