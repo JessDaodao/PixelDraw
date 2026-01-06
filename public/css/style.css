@@ -23,21 +23,21 @@ body {
     transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
-.loading-text {
+.loading-bottom-text {
     position: absolute;
-    bottom: 30px;
+    bottom: 10px;
     color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
+    font-size: 12px;
     letter-spacing: 0.5px;
 }
 
-.loading-text a {
+.loading-bottom-text a {
     color: rgba(255, 255, 255, 0.6);
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
-.loading-text a:hover {
+.loading-bottom-text a:hover {
     color: rgba(255, 255, 255, 0.8);
 }
 
