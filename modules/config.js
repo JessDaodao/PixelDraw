@@ -17,7 +17,6 @@ const defaultConfig = {
     port: 3000,
     siteTitle: 'PixelDraw',
     siteIcon: 'img/icon.png',
-    loadingIcon: 'img/icon-full.png',
     broadcastTitle: '公告',
     boardWidth: 800,
     boardHeight: 500,
@@ -69,7 +68,6 @@ function loadConfig() {
     config.PORT = config.port;
     config.SITE_TITLE = config.siteTitle;
     config.SITE_ICON = config.siteIcon;
-    config.LOADING_ICON = config.loadingIcon;
     config.BROADCAST_TITLE = config.broadcastTitle;
     config.BOARD_WIDTH = config.boardWidth;
     config.BOARD_HEIGHT = config.boardHeight;
