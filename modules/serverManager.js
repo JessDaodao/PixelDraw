@@ -113,14 +113,6 @@ class ServerManager {
         }, config.AUTO_SAVE_INTERVAL * 60 * 1000);
     }
 
-    setupCleanupTask() {
-        this.cleanupInterval = setInterval(() => {
-            if (this.webSocketHandler) {
-                this.webSocketHandler.cleanupInactiveUsers();
-            }
-        }, config.RATE_LIMIT_WINDOW * 60 * 1000);
-    }
-
     ensureBroadcastFile() {
         const broadcastPath = path.join(__dirname, '..', 'broadcast.txt');
         const versionPath = path.join(__dirname, '..', 'broadcast-ver.json');
