@@ -225,43 +225,17 @@ function updateConnectionStatus(status) {
     }
 }
 
-function measurePing() {
-    const startTime = Date.now();
-    socket.emit('ping');
-    socket.once('pong', () => {
-        currentPing = Date.now() - startTime;
-        pingTextSpan.textContent = currentPing + 'ms';
-    });
-}
-
-function startPingMeasurement() {
-    if (pingInterval) {
-        clearInterval(pingInterval);
-    }
-    measurePing();
-    pingInterval = setInterval(measurePing, 1000);
-}
-
-function stopPingMeasurement() {
-    if (pingInterval) {
-        clearInterval(pingInterval);
-        pingInterval = null;
-    }
-    pingTextSpan.textContent = '';
-}
-
 socket.on('connect', () => {
     updateConnectionStatus('connected');
     if (reconnectInterval) {
         clearInterval(reconnectInterval);
         reconnectInterval = null;
     }
-    startPingMeasurement();
 });
 
 socket.on('disconnect', () => {
     updateConnectionStatus('reconnecting');
-    stopPingMeasurement();
+    pingTextSpan.textContent = '';
     if (!reconnectInterval) {
         reconnectInterval = setInterval(() => {
             socket.connect();
@@ -273,6 +247,10 @@ socket.on('connect_error', () => {
     if (!socket.connected) {
         updateConnectionStatus('reconnecting');
     }
+});
+
+socket.on('online-count', (count) => {
+    pingTextSpan.textContent = '在线 ' + count;
 });
 
 window.addEventListener('resize', resizeCanvas);

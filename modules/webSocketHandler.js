@@ -97,6 +97,9 @@ class WebSocketHandler {
                 user: user,
                 connectedAt: Date.now()
             });
+            
+            this.broadcastOnlineCount();
+            
             if (!user.isGuest) {
                 socket.emit('login-success', {
                     user: {
@@ -124,13 +127,10 @@ class WebSocketHandler {
             socket.on('disconnect', () => {
                 log(`用户断开连接: ${userIP} (Socket: ${socket.id})`);
                 this.activeConnections.delete(socket.id);
+                this.broadcastOnlineCount();
             });
             socket.on('request-quota-update', () => {
                 this.updateUserQuota(socket);
-            });
-            
-            socket.on('ping', () => {
-                socket.emit('pong');
             });
             
             socket.on('verify-admin', (password) => {
@@ -154,6 +154,11 @@ class WebSocketHandler {
             }
         }
         return ip || 'unknown';
+    }
+
+    broadcastOnlineCount() {
+        const onlineCount = this.activeConnections.size;
+        this.io.emit('online-count', onlineCount);
     }
 
     handleDrawPixel(socket, x, y, color) {
