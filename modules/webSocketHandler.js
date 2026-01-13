@@ -117,7 +117,8 @@ class WebSocketHandler {
                 boardHeight: config.BOARD_HEIGHT,
                 minZoom: config.MIN_ZOOM,
                 maxZoom: config.MAX_ZOOM,
-                maxPixels: config.MAX_PIXELS_PER_WINDOW
+                maxPixels: config.MAX_PIXELS_PER_WINDOW,
+                pixelRecoveryWindow: config.PIXEL_RECOVERY_WINDOW
             });
             
             this.updateUserQuota(socket);
@@ -214,7 +215,7 @@ class WebSocketHandler {
             this.userRateLimits[rateLimitKey] = userLimit;
         }
         const timeSinceLastRefill = now - userLimit.lastRefillTime;
-        const tokensToRefill = Math.floor(timeSinceLastRefill / (60 * 1000));
+        const tokensToRefill = Math.floor(timeSinceLastRefill / (config.PIXEL_RECOVERY_WINDOW * 1000));
         
         if (tokensToRefill > 0) {
             userLimit.tokens = Math.min(userLimit.tokens + tokensToRefill, userLimit.maxTokens);
@@ -228,7 +229,7 @@ class WebSocketHandler {
                 this.updateUserQuota(socket);
             }
         } else {
-            const waitTime = 60 - Math.floor((now - userLimit.lastRefillTime) / 1000) % 60;
+            const waitTime = config.PIXEL_RECOVERY_WINDOW - Math.floor((now - userLimit.lastRefillTime) / 1000) % config.PIXEL_RECOVERY_WINDOW;
             socket.emit('error-message', `像素已用完！请等待 ${waitTime} 秒`);
         }
     }
@@ -253,7 +254,7 @@ class WebSocketHandler {
         }
         
         const timeSinceLastRefill = now - userLimit.lastRefillTime;
-        const tokensToRefill = Math.floor(timeSinceLastRefill / (60 * 1000));
+        const tokensToRefill = Math.floor(timeSinceLastRefill / (config.PIXEL_RECOVERY_WINDOW * 1000));
         
         if (tokensToRefill > 0) {
             userLimit.tokens = Math.min(userLimit.tokens + tokensToRefill, userLimit.maxTokens);
@@ -262,7 +263,7 @@ class WebSocketHandler {
         
         let nextRefillTime = null;
         if (userLimit.tokens < userLimit.maxTokens) {
-            const timeUntilNextRefill = 60 * 1000 - (now - userLimit.lastRefillTime) % (60 * 1000);
+            const timeUntilNextRefill = config.PIXEL_RECOVERY_WINDOW * 1000 - (now - userLimit.lastRefillTime) % (config.PIXEL_RECOVERY_WINDOW * 1000);
             nextRefillTime = Math.ceil(timeUntilNextRefill / 1000);
         }
         
@@ -353,7 +354,8 @@ class WebSocketHandler {
                     boardHeight: config.BOARD_HEIGHT,
                     minZoom: config.MIN_ZOOM,
                     maxZoom: config.MAX_ZOOM,
-                    maxPixels: config.MAX_PIXELS_PER_WINDOW
+                    maxPixels: config.MAX_PIXELS_PER_WINDOW,
+                    pixelRecoveryWindow: config.PIXEL_RECOVERY_WINDOW
                 });
             } catch (error) {
                 logError('清空画板失败: ' + error);

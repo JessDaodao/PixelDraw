@@ -23,6 +23,7 @@ const defaultConfig = {
     minZoom: 0.5,
     maxZoom: 20,
     maxPixelsPerWindow: 100,
+    pixelRecoveryWindow: 60,
     autoSaveInterval: 5,
     enableBackup: true,
     maxBackups: 5,
@@ -73,6 +74,7 @@ function loadConfig() {
     config.MIN_ZOOM = config.minZoom;
     config.MAX_ZOOM = config.maxZoom;
     config.MAX_PIXELS_PER_WINDOW = config.maxPixelsPerWindow;
+    config.PIXEL_RECOVERY_WINDOW = config.pixelRecoveryWindow;
     config.AUTO_SAVE_INTERVAL = config.autoSaveInterval;
     config.ENABLE_BACKUP = config.enableBackup;
     config.MAX_BACKUPS = config.maxBackups;

@@ -51,6 +51,8 @@
     "maxZoom": 20,
     // 每个用户的最大像素数
     "maxPixelsPerWindow": 100,
+    // 恢复1像素所需时间（秒）
+    "pixelRecoveryWindow": 60,
     // 自动保存间隔（分钟）
     "autoSaveInterval": 5,
     // 是否启用备份

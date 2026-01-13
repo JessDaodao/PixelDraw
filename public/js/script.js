@@ -75,7 +75,8 @@ let lastTouchPos = { x: 0, y: 0 };
 let isTouchDragging = false;
 let pixelRecoveryInterval;
 let currentQuota = 10;
-let maxQuota;
+let maxQuota = 100;
+let pixelRecoveryWindow = 60;
 let recoveryCountdown = 0;
 let isAnimating = false;
 let zoomAnimationId = null;
@@ -801,6 +802,7 @@ socket.on('init-board', (data) => {
         MIN_ZOOM = data.minZoom || MIN_ZOOM;
         MAX_ZOOM = data.maxZoom || MAX_ZOOM;
         maxQuota = data.maxPixels || maxQuota;
+        pixelRecoveryWindow = data.pixelRecoveryWindow || pixelRecoveryWindow;
         resizeCanvas();
     } else {
         board = data;
@@ -1030,7 +1032,7 @@ function startRecoveryCountdown() {
 }
 
 function updateRecoveryProgress() {
-    const progress = 100 - (recoveryCountdown * (100 / 60));
+    const progress = 100 - (recoveryCountdown * (100 / pixelRecoveryWindow));
     recoveryProgressBar.style.strokeDasharray = `${progress}, 100`;
 }
 
