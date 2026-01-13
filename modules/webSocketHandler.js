@@ -13,7 +13,7 @@ class WebSocketHandler {
         this.adminAttempts = new Map();
         this.adminCooldowns = new Map();
         this.boardClearedOnStart = false;
-        
+
         this.io.use(async (socket, next) => {
             const auth = socket.handshake.auth || {};
             const token = auth.token;
@@ -32,7 +32,7 @@ class WebSocketHandler {
                     socket.newSessionKey = newSessionKey;
                 }
             }
-            
+
             next();
         });
         this.setupSocketHandlers();
@@ -42,7 +42,7 @@ class WebSocketHandler {
     async verifyToken(token) {
         return new Promise((resolve) => {
             const verifyUrl = `https://eqmemory.cn/eu-json/eu-connect/v1/user-profile?token=${token}`;
-            
+
             const options = {
                 headers: {
                     'User-Agent': 'PixelDraw-Server/1.0',
@@ -61,7 +61,7 @@ class WebSocketHandler {
                     }
                     try {
                         const userInfo = JSON.parse(data);
-                        
+
                         if (userInfo && userInfo.id && !userInfo.error) {
                             resolve({
                                 id: userInfo.id,
@@ -97,9 +97,9 @@ class WebSocketHandler {
                 user: user,
                 connectedAt: Date.now()
             });
-            
+
             this.broadcastOnlineCount();
-            
+
             if (!user.isGuest) {
                 socket.emit('login-success', {
                     user: {
@@ -111,15 +111,15 @@ class WebSocketHandler {
                 });
                 delete socket.newSessionKey;
             }
-            socket.emit('init-board', { 
-                board: this.dataPersistence.getBoard(), 
+            socket.emit('init-board', {
+                board: this.dataPersistence.getBoard(),
                 boardWidth: config.BOARD_WIDTH,
                 boardHeight: config.BOARD_HEIGHT,
                 minZoom: config.MIN_ZOOM,
                 maxZoom: config.MAX_ZOOM,
                 maxPixels: config.MAX_PIXELS_PER_WINDOW
             });
-            
+
             this.updateUserQuota(socket);
             socket.on('draw-pixel', ({ x, y, color }) => {
                 this.handleDrawPixel(socket, x, y, color);
@@ -132,11 +132,11 @@ class WebSocketHandler {
             socket.on('request-quota-update', () => {
                 this.updateUserQuota(socket);
             });
-            
+
             socket.on('verify-admin', (password) => {
                 this.handleAdminVerification(socket, password);
             });
-            
+
             socket.on('exit-admin-mode', () => {
                 this.handleExitAdminMode(socket);
             });
@@ -166,9 +166,9 @@ class WebSocketHandler {
             socket.emit('error-message', '游客无法绘图，请先登录！');
             return;
         }
-        
+
         const isAdmin = this.adminSessions.has(socket.id);
-        
+
         if (config.ENABLE_TIME_LIMIT && !isAdmin) {
             const now = new Date();
             const [startDate, startTime] = config.TIME_LIMIT_START.split(' ');
@@ -191,7 +191,7 @@ class WebSocketHandler {
         if (currentColor === color) {
             return;
         }
-        
+
         if (isAdmin) {
             if (this.dataPersistence.updatePixel(x, y, color)) {
                 this.io.emit('pixel-update', { x, y, color });
@@ -199,11 +199,11 @@ class WebSocketHandler {
             }
             return;
         }
-        
+
         const now = Date.now();
-        
+
         const rateLimitKey = socket.user.id;
-        
+
         let userLimit = this.userRateLimits[rateLimitKey];
         if (!userLimit) {
             userLimit = {
@@ -215,14 +215,14 @@ class WebSocketHandler {
         }
         const timeSinceLastRefill = now - userLimit.lastRefillTime;
         const tokensToRefill = Math.floor(timeSinceLastRefill / (60 * 1000));
-        
+
         if (tokensToRefill > 0) {
             userLimit.tokens = Math.min(userLimit.tokens + tokensToRefill, userLimit.maxTokens);
-            userLimit.lastRefillTime = now;
+            userLimit.lastRefillTime += tokensToRefill * 60 * 1000;
         }
         if (userLimit.tokens > 0) {
             userLimit.tokens -= 1;
-            
+
             if (this.dataPersistence.updatePixel(x, y, color)) {
                 this.io.emit('pixel-update', { x, y, color });
                 this.updateUserQuota(socket);
@@ -240,9 +240,9 @@ class WebSocketHandler {
         }
         const now = Date.now();
         const rateLimitKey = socket.user.id;
-        
+
         let userLimit = this.userRateLimits[rateLimitKey];
-        
+
         if (!userLimit) {
             userLimit = {
                 tokens: config.MAX_PIXELS_PER_WINDOW,
@@ -251,21 +251,21 @@ class WebSocketHandler {
             };
             this.userRateLimits[rateLimitKey] = userLimit;
         }
-        
+
         const timeSinceLastRefill = now - userLimit.lastRefillTime;
         const tokensToRefill = Math.floor(timeSinceLastRefill / (60 * 1000));
-        
+
         if (tokensToRefill > 0) {
             userLimit.tokens = Math.min(userLimit.tokens + tokensToRefill, userLimit.maxTokens);
-            userLimit.lastRefillTime = now;
+            userLimit.lastRefillTime += tokensToRefill * 60 * 1000;
         }
-        
+
         let nextRefillTime = null;
         if (userLimit.tokens < userLimit.maxTokens) {
             const timeUntilNextRefill = 60 * 1000 - (now - userLimit.lastRefillTime) % (60 * 1000);
             nextRefillTime = Math.ceil(timeUntilNextRefill / 1000);
         }
-        
+
         socket.emit('quota-update', userLimit.tokens, nextRefillTime);
     }
 
@@ -283,15 +283,15 @@ class WebSocketHandler {
             socket.emit('admin-verify-result', { success: false, message: '请先登录' });
             return;
         }
-        
+
         const userId = socket.user.id;
-        
+
         if (this.adminCooldowns.has(userId)) {
             const cooldownEnd = this.adminCooldowns.get(userId);
             const remainingTime = Math.ceil((cooldownEnd - Date.now()) / 1000);
             if (remainingTime > 0) {
-                socket.emit('admin-verify-result', { 
-                    success: false, 
+                socket.emit('admin-verify-result', {
+                    success: false,
                     message: `密码错误次数过多，请等待 ${remainingTime} 秒后再试`,
                     cooldown: remainingTime
                 });
@@ -301,7 +301,7 @@ class WebSocketHandler {
                 this.adminAttempts.delete(userId);
             }
         }
-        
+
         if (password === config.ADMIN_PASSWORD) {
             this.adminAttempts.delete(userId);
             this.adminCooldowns.delete(userId);
@@ -311,19 +311,19 @@ class WebSocketHandler {
         } else {
             const attempts = (this.adminAttempts.get(userId) || 0) + 1;
             this.adminAttempts.set(userId, attempts);
-            
+
             if (attempts >= config.ADMIN_MAX_ATTEMPTS) {
                 const cooldownDuration = config.ADMIN_COOLDOWN_MINUTES * 60 * 1000;
                 this.adminCooldowns.set(userId, Date.now() + cooldownDuration);
-                socket.emit('admin-verify-result', { 
-                    success: false, 
+                socket.emit('admin-verify-result', {
+                    success: false,
                     message: `密码错误次数过多`,
                     cooldown: config.ADMIN_COOLDOWN_MINUTES * 60
                 });
                 logWarn(`用户 ${socket.user.nickname} (ID: ${socket.user.id}) 因多次密码错误被禁止登录${config.ADMIN_COOLDOWN_MINUTES}分钟`);
             } else {
-                socket.emit('admin-verify-result', { 
-                    success: false, 
+                socket.emit('admin-verify-result', {
+                    success: false,
                     message: `密码错误，您还有 ${config.ADMIN_MAX_ATTEMPTS - attempts} 次尝试机会`
                 });
             }
@@ -342,11 +342,11 @@ class WebSocketHandler {
         if (config.CLEAR_BOARD_ON_START && !this.boardClearedOnStart) {
             this.boardClearedOnStart = true;
             log('正在生成备份并清空画板');
-            
+
             try {
                 await this.dataPersistence.saveBoardData(true);
                 this.dataPersistence.clearBoard();
-                
+
                 this.io.emit('init-board', {
                     board: this.dataPersistence.getBoard(),
                     boardWidth: config.BOARD_WIDTH,
@@ -372,14 +372,14 @@ class WebSocketHandler {
 
         this.activityMonitorInterval = setInterval(() => {
             const now = new Date();
-            
+
             const [startDate, startTime] = config.TIME_LIMIT_START.split(' ');
             const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
             const [startHour, startMinute] = startTime.split(':').map(Number);
             const startDateTime = new Date(startYear, startMonth - 1, startDay, startHour, startMinute, 0, 0);
-            
+
             const timeUntilStart = startDateTime - now;
-            
+
             if (timeUntilStart <= 0 && timeUntilStart > -60000) {
                 this.handleActivityStarted();
                 clearInterval(this.activityMonitorInterval);
@@ -391,17 +391,17 @@ class WebSocketHandler {
     async disconnectAllUsers() {
         const connectionCount = this.activeConnections.size;
         log(`正在断开所有连接`);
-        
+
         if (connectionCount === 0) {
             return;
         }
-        
-        this.io.emit('server-shutdown', { 
+
+        this.io.emit('server-shutdown', {
             timestamp: new Date().toISOString()
         });
-        
+
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         for (const [socketId, connection] of this.activeConnections) {
             try {
                 if (connection.socket.connected) {
@@ -411,9 +411,9 @@ class WebSocketHandler {
                 logError(`断开连接失败 ${connection.userIP} (${socketId}): ${error.message}`);
             }
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
         this.activeConnections.clear();
     }
 }
