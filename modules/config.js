@@ -22,7 +22,6 @@ const defaultConfig = {
     boardHeight: 500,
     minZoom: 0.5,
     maxZoom: 20,
-    rateLimitWindow: 30,
     maxPixelsPerWindow: 100,
     autoSaveInterval: 5,
     enableBackup: true,
@@ -73,7 +72,6 @@ function loadConfig() {
     config.BOARD_HEIGHT = config.boardHeight;
     config.MIN_ZOOM = config.minZoom;
     config.MAX_ZOOM = config.maxZoom;
-    config.RATE_LIMIT_WINDOW = config.rateLimitWindow;
     config.MAX_PIXELS_PER_WINDOW = config.maxPixelsPerWindow;
     config.AUTO_SAVE_INTERVAL = config.autoSaveInterval;
     config.ENABLE_BACKUP = config.enableBackup;
