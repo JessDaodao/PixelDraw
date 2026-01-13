@@ -37,6 +37,7 @@ class WebSocketHandler {
         });
         this.setupSocketHandlers();
         this.startActivityMonitor();
+        this.startRateLimitsAutoSave();
     }
 
     async verifyToken(token) {
@@ -227,11 +228,16 @@ class WebSocketHandler {
             if (this.dataPersistence.updatePixel(x, y, color)) {
                 this.io.emit('pixel-update', { x, y, color });
                 this.updateUserQuota(socket);
+                this.saveUserRateLimits();
             }
         } else {
             const waitTime = config.PIXEL_RECOVERY_WINDOW - Math.floor((now - userLimit.lastRefillTime) / 1000) % config.PIXEL_RECOVERY_WINDOW;
             socket.emit('error-message', `像素已用完！请等待 ${waitTime} 秒`);
         }
+    }
+
+    saveUserRateLimits() {
+        this.dataPersistence.saveUserRateLimits(this.userRateLimits);
     }
 
     updateUserQuota(socket) {
@@ -388,6 +394,16 @@ class WebSocketHandler {
                 this.activityMonitorInterval = null;
             }
         }, 500);
+    }
+
+    startRateLimitsAutoSave() {
+        if (this.rateLimitsAutoSaveInterval) {
+            clearInterval(this.rateLimitsAutoSaveInterval);
+        }
+
+        this.rateLimitsAutoSaveInterval = setInterval(() => {
+            this.saveUserRateLimits();
+        }, 60000);
     }
 
     async disconnectAllUsers() {

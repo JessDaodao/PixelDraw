@@ -157,6 +157,9 @@ class ServerManager {
                 }
                 log('正在保存画板数据');
                 await this.dataPersistence.saveBoardData();
+                if (this.webSocketHandler) {
+                    this.webSocketHandler.saveUserRateLimits();
+                }
                 if (config.ENABLE_BACKUP) {
                     log('正在创建备份');
                 }              
@@ -166,6 +169,9 @@ class ServerManager {
                 }
                 if (this.cleanupInterval) {
                     clearInterval(this.cleanupInterval);
+                }
+                if (this.webSocketHandler && this.webSocketHandler.rateLimitsAutoSaveInterval) {
+                    clearInterval(this.webSocketHandler.rateLimitsAutoSaveInterval);
                 }
                 const forceExitTimeout = setTimeout(() => {
                     log('服务端已关闭');

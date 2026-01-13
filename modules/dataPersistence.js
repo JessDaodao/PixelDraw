@@ -150,6 +150,13 @@ class DataPersistence {
         return this.userRateLimits;
     }
 
+    saveUserRateLimits(rateLimits) {
+        this.userRateLimits = rateLimits;
+        const rateLimitPath = path.join(__dirname, '..', 'rate_limits.json');
+        const rateLimitData = JSON.stringify(this.userRateLimits, null, 2);
+        fs.promises.writeFile(rateLimitPath, rateLimitData);
+    }
+
     setBoard(board) {
         this.board = board;
     }
