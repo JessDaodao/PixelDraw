@@ -926,3 +926,15 @@ canvas {
         margin-right: -8px;
     }
 }
+
+.live-mode #status,
+.live-mode .hud,
+.live-mode .modal,
+.live-mode .admin-tools,
+.live-mode .connection-status {
+    display: none !important;
+}
+
+.live-mode .top-center {
+    display: block !important;
+}

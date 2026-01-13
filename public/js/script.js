@@ -1,6 +1,11 @@
 const urlParams = new URLSearchParams(window.location.search);
 const euToken = urlParams.get('eu_token');
 const euSessionKey = localStorage.getItem('eu_session_key');
+const isLiveMode = urlParams.has('live');
+
+if (isLiveMode) {
+    document.body.classList.add('live-mode');
+}
 
 const socket = io({
     auth: {
