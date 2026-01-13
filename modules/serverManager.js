@@ -97,7 +97,6 @@ class ServerManager {
         this.ensureBroadcastFile();
         this.webSocketHandler = new WebSocketHandler(this.io, this.dataPersistence);
         this.setupAutoSave();
-        this.setupCleanupTask();
         this.server.listen(config.PORT, () => {
             log(`服务端已启动于 http://localhost:${config.PORT}`);
         });
