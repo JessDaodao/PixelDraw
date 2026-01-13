@@ -49,8 +49,6 @@
     "minZoom": 0.5,
     // 最大缩放比例
     "maxZoom": 20,
-    // 用户关闭窗口后像素限制会在多久后重置（分钟）
-    "rateLimitWindow": 10,
     // 每个用户的最大像素数
     "maxPixelsPerWindow": 100,
     // 自动保存间隔（分钟）
