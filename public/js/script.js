@@ -15,7 +15,10 @@ const socket = io({
 });
 
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false });
+let boardCacheCanvas = null;
+let boardCacheCtx = null;
+let boardCacheDirty = true;
 const quotaSpan = document.getElementById('quota');
 const recoveryProgressBar = document.getElementById('recoveryProgressBar');
 const statusDiv = document.getElementById('status');
@@ -97,6 +100,8 @@ let lastMoveTime = 0;
 let inertiaAnimationId = null;
 const friction = 0.95;
 const minVelocity = 0.1;
+let renderAnimationId = null;
+let renderRequested = false;
 
 let enablePixelCountdown = false;
 let pixelCountdownPosition = 'top-right';
@@ -149,7 +154,7 @@ fetch('/api/config')
                 
                 setInterval(() => {
                     if (enablePixelCountdown && timeLimitStart && timeLimitEnd) {
-                        render();
+                        requestRender();
                     }
                 }, 1000);
             }
@@ -276,36 +281,110 @@ function resizeCanvas() {
     if (isMobile && hoverPixel) {
         hoverPixel = null;
     }
-    render();
+    initBoardCache();
+    requestRender();
     renderColorPresets();
 }
 
-function render() {
-    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
-    ctx.fillStyle = '#eee';
-    ctx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+function initBoardCache() {
+    if (!boardCacheCanvas || boardCacheCanvas.width !== BOARD_WIDTH || boardCacheCanvas.height !== BOARD_HEIGHT) {
+        boardCacheCanvas = document.createElement('canvas');
+        boardCacheCanvas.width = BOARD_WIDTH;
+        boardCacheCanvas.height = BOARD_HEIGHT;
+        boardCacheCtx = boardCacheCanvas.getContext('2d', { alpha: false });
+        boardCacheDirty = true;
+    }
+}
+
+function updateBoardCache() {
+    if (!boardCacheDirty || !boardCacheCtx) return;
+    
+    boardCacheCtx.fillStyle = '#eee';
+    boardCacheCtx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+    
     board.forEach((row, y) => {
         if (y < BOARD_HEIGHT) {
             row.forEach((color, x) => {
                 if (x < BOARD_WIDTH && color !== '#FFFFFF') {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x, y, 1, 1);
+                    boardCacheCtx.fillStyle = color;
+                    boardCacheCtx.fillRect(x, y, 1, 1);
                 }
             });
         }
     });
+    
+    boardCacheDirty = false;
+}
+
+function renderViewport() {
+    const viewportLeft = Math.max(0, Math.floor(-offsetX / scale));
+    const viewportTop = Math.max(0, Math.floor(-offsetY / scale));
+    const viewportRight = Math.min(BOARD_WIDTH, Math.ceil((window.innerWidth - offsetX) / scale));
+    const viewportBottom = Math.min(BOARD_HEIGHT, Math.ceil((window.innerHeight - offsetY) / scale));
+    
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(viewportLeft, viewportTop, viewportRight - viewportLeft, viewportBottom - viewportTop);
+    
+    for (let y = viewportTop; y < viewportBottom; y++) {
+        const row = board[y];
+        if (!row) continue;
+        for (let x = viewportLeft; x < viewportRight; x++) {
+            const color = row[x];
+            if (color && color !== '#FFFFFF') {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 1, 1);
+            }
+        }
+    }
+}
+
+function requestRender() {
+    if (!renderRequested) {
+        renderRequested = true;
+        renderAnimationId = requestAnimationFrame(() => {
+            renderRequested = false;
+            render();
+        });
+    }
+}
+
+function render() {
+    ctx.fillStyle = '#202020';
+    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+    
+    if (scale < 0.5) {
+        updateBoardCache();
+        if (boardCacheCanvas) {
+            ctx.drawImage(boardCacheCanvas, 0, 0);
+        } else {
+            renderViewport();
+        }
+    } else {
+        renderViewport();
+    }
+    
     if (scale > 10) {
+        const viewportLeft = Math.max(0, Math.floor(-offsetX / scale));
+        const viewportTop = Math.max(0, Math.floor(-offsetY / scale));
+        const viewportRight = Math.min(BOARD_WIDTH, Math.ceil((window.innerWidth - offsetX) / scale));
+        const viewportBottom = Math.min(BOARD_HEIGHT, Math.ceil((window.innerHeight - offsetY) / scale));
+        
         ctx.lineWidth = 0.05;
         ctx.strokeStyle = "#ccc";
-        for (let i = 0; i <= BOARD_WIDTH; i++) {
-            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, BOARD_HEIGHT); ctx.stroke();
+        
+        ctx.beginPath();
+        for (let i = Math.max(0, viewportLeft); i <= Math.min(BOARD_WIDTH, viewportRight); i++) {
+            ctx.moveTo(i, viewportTop);
+            ctx.lineTo(i, viewportBottom);
         }
-        for (let i = 0; i <= BOARD_HEIGHT; i++) {
-            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(BOARD_WIDTH, i); ctx.stroke();
+        for (let i = Math.max(0, viewportTop); i <= Math.min(BOARD_HEIGHT, viewportBottom); i++) {
+            ctx.moveTo(viewportLeft, i);
+            ctx.lineTo(viewportRight, i);
         }
+        ctx.stroke();
     }
     const isMobile = window.innerWidth <= 768;
     if (!isMobile && hoverPixel && hoverPixel.x >= 0 && hoverPixel.x < BOARD_WIDTH && hoverPixel.y >= 0 && hoverPixel.y < BOARD_HEIGHT) {
@@ -575,7 +654,7 @@ function applyInertia() {
     offsetY += velocityY;
     velocityX *= friction;
     velocityY *= friction;
-    render();
+    requestRender();
     inertiaAnimationId = requestAnimationFrame(applyInertia);
 }
 
@@ -625,7 +704,7 @@ function snapToBounds() {
             const easedProgress = 1 - Math.pow(1 - progress, 3);
             offsetX = startX + (targetOffsetX - startX) * easedProgress;
             offsetY = startY + (targetOffsetY - startY) * easedProgress;
-            render();
+            requestRender();
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
@@ -685,7 +764,7 @@ canvas.addEventListener('wheel', (e) => {
         scale = zoomStartScale + (zoomTargetScale - zoomStartScale) * easedProgress;
         offsetX = zoomStartOffsetX + (zoomTargetOffsetX - zoomStartOffsetX) * easedProgress;
         offsetY = zoomStartOffsetY + (zoomTargetOffsetY - zoomStartOffsetY) * easedProgress;
-        render();
+        requestRender();
         if (progress < 1) {
             zoomAnimationId = requestAnimationFrame(animate);
         } else {
@@ -757,7 +836,7 @@ window.addEventListener('mousemove', (e) => {
         }
         lastMousePos = { x: e.clientX, y: e.clientY };
         lastMoveTime = currentTime;
-        render();
+        requestRender();
     } else {
         const isMobile = window.innerWidth <= 768;
         if (!isMobile) {
@@ -768,7 +847,7 @@ window.addEventListener('mousemove', (e) => {
             } else {
                 hoverPixel = null;
             }
-            render();
+            requestRender();
         }
     }
 });
@@ -789,7 +868,7 @@ window.addEventListener('mouseup', () => {
 
 canvas.addEventListener('mouseleave', () => {
     hoverPixel = null;
-    render();
+    requestRender();
 });
 
 canvas.oncontextmenu = (e) => e.preventDefault();
@@ -832,8 +911,9 @@ socket.on('login-success', (data) => {
 socket.on('pixel-update', ({ x, y, color }) => {
     if (y >= 0 && y < BOARD_HEIGHT && x >= 0 && x < BOARD_WIDTH && board[y]) {
         board[y][x] = color;
+        boardCacheDirty = true;
     }
-    render();
+    requestRender();
 });
 
 socket.on('error-message', (msg) => {
@@ -1099,7 +1179,7 @@ canvas.addEventListener('touchmove', (e) => {
             offsetX = currentCenter.x - (initialTouchCenter.x - initialOffset.x) * scaleChange;
             offsetY = currentCenter.y - (initialTouchCenter.y - initialOffset.y) * scaleChange;
             scale = newScale;
-            render();
+            requestRender();
         }
     } else if (e.touches.length === 1) {
         const moveDistance = Math.sqrt(
@@ -1120,7 +1200,7 @@ canvas.addEventListener('touchmove', (e) => {
             }
             lastTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             lastMoveTime = currentTime;
-            render();
+            requestRender();
         }
     }
 }, { passive: false });
