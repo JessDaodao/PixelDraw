@@ -19,6 +19,9 @@ const ctx = canvas.getContext('2d', { alpha: false });
 let boardCacheCanvas = null;
 let boardCacheCtx = null;
 let boardCacheDirty = true;
+let tempCanvas = null;
+let tempCtx = null;
+const colorCache = new Map();
 const quotaSpan = document.getElementById('quota');
 const recoveryProgressBar = document.getElementById('recoveryProgressBar');
 const statusDiv = document.getElementById('status');
@@ -299,20 +302,36 @@ function initBoardCache() {
 function updateBoardCache() {
     if (!boardCacheDirty || !boardCacheCtx) return;
     
-    boardCacheCtx.fillStyle = '#eee';
-    boardCacheCtx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+    const imageData = boardCacheCtx.createImageData(BOARD_WIDTH, BOARD_HEIGHT);
+    const data = imageData.data;
     
-    board.forEach((row, y) => {
-        if (y < BOARD_HEIGHT) {
-            row.forEach((color, x) => {
-                if (x < BOARD_WIDTH && color !== '#FFFFFF') {
-                    boardCacheCtx.fillStyle = color;
-                    boardCacheCtx.fillRect(x, y, 1, 1);
-                }
-            });
+    const getRgb = (hex) => {
+        if (colorCache.has(hex)) {
+            return colorCache.get(hex);
         }
-    });
+        const num = parseInt(hex.slice(1), 16);
+        const rgb = [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+        colorCache.set(hex, rgb);
+        return rgb;
+    };
     
+    const lightGrayColor = [238, 238, 238];
+    
+    for (let y = 0; y < BOARD_HEIGHT; y++) {
+        const row = board[y];
+        if (!row) continue;
+        for (let x = 0; x < BOARD_WIDTH; x++) {
+            const color = row[x];
+            const rgb = color && color !== '#FFFFFF' ? getRgb(color) : lightGrayColor;
+            const index = (y * BOARD_WIDTH + x) * 4;
+            data[index] = rgb[0];
+            data[index + 1] = rgb[1];
+            data[index + 2] = rgb[2];
+            data[index + 3] = 255;
+        }
+    }
+    
+    boardCacheCtx.putImageData(imageData, 0, 0);
     boardCacheDirty = false;
 }
 
@@ -322,20 +341,53 @@ function renderViewport() {
     const viewportRight = Math.min(BOARD_WIDTH, Math.ceil((window.innerWidth - offsetX) / scale));
     const viewportBottom = Math.min(BOARD_HEIGHT, Math.ceil((window.innerHeight - offsetY) / scale));
     
-    ctx.fillStyle = '#eee';
-    ctx.fillRect(viewportLeft, viewportTop, viewportRight - viewportLeft, viewportBottom - viewportTop);
+    const width = viewportRight - viewportLeft;
+    const height = viewportBottom - viewportTop;
+    
+    if (!tempCanvas || tempCanvas.width < width || tempCanvas.height < height) {
+        tempCanvas = document.createElement('canvas');
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+        tempCtx = tempCanvas.getContext('2d');
+    } else {
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+    }
+    
+    const imageData = tempCtx.createImageData(width, height);
+    const data = imageData.data;
+    
+    const getRgb = (hex) => {
+        if (colorCache.has(hex)) {
+            return colorCache.get(hex);
+        }
+        const num = parseInt(hex.slice(1), 16);
+        const rgb = [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+        colorCache.set(hex, rgb);
+        return rgb;
+    };
+    
+    const lightGrayColor = [238, 238, 238];
     
     for (let y = viewportTop; y < viewportBottom; y++) {
         const row = board[y];
         if (!row) continue;
+        const destY = y - viewportTop;
         for (let x = viewportLeft; x < viewportRight; x++) {
             const color = row[x];
-            if (color && color !== '#FFFFFF') {
-                ctx.fillStyle = color;
-                ctx.fillRect(x, y, 1, 1);
-            }
+            const rgb = color && color !== '#FFFFFF' ? getRgb(color) : lightGrayColor;
+            const destX = x - viewportLeft;
+            const index = (destY * width + destX) * 4;
+            data[index] = rgb[0];
+            data[index + 1] = rgb[1];
+            data[index + 2] = rgb[2];
+            data[index + 3] = 255;
         }
     }
+    
+    tempCtx.putImageData(imageData, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(tempCanvas, viewportLeft, viewportTop);
 }
 
 function requestRender() {
