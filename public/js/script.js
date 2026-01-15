@@ -114,6 +114,7 @@ let pixelCountdownOffsetX = 0;
 let pixelCountdownOffsetY = 0;
 let timeLimitStart = null;
 let timeLimitEnd = null;
+let serverTimezoneOffset = null;
 
 if (loginBtn) {
     loginBtn.addEventListener('click', () => {
@@ -143,6 +144,13 @@ fetch('/api/config')
             }
         }
         if (config.enableTimeLimit) {
+            serverTimezoneOffset = config.serverTimezoneOffset;
+            
+            const clientOffset = new Date().getTimezoneOffset();
+            if (serverTimezoneOffset !== null && serverTimezoneOffset !== undefined && clientOffset !== serverTimezoneOffset) {
+                console.log(`time`);
+            }
+            
             initCountdown(config.timeLimitStart, config.timeLimitEnd);
             
             if (config.enablePixelCountdown) {
@@ -164,11 +172,19 @@ fetch('/api/config')
         }
     })
 
-function parseDateTime(timeStr) {
+function parseDateTime(timeStr, timezoneOffset) {
     const [datePart, timePart] = timeStr.split(' ');
     const [year, month, day] = datePart.split('-').map(Number);
     const [hours, minutes] = timePart.split(':').map(Number);
-    const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    
+    let date = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    
+    if (timezoneOffset !== undefined && timezoneOffset !== null) {
+        const clientOffset = new Date().getTimezoneOffset();
+        const offsetDiff = clientOffset - timezoneOffset;
+        date = new Date(date.getTime() + offsetDiff * 60 * 1000);
+    }
+    
     return date;
 }
 
@@ -187,8 +203,8 @@ function formatTimeRemaining(ms) {
 
 function updateCountdown(startTime, endTime) {
     const now = new Date();
-    const start = parseDateTime(startTime);
-    const end = parseDateTime(endTime);
+    const start = parseDateTime(startTime, serverTimezoneOffset);
+    const end = parseDateTime(endTime, serverTimezoneOffset);
     
     const countdownDiv = document.getElementById('countdown');
     const countdownLabel = document.getElementById('countdownLabel');
@@ -461,8 +477,8 @@ function darkenColor(color, percent) {
 
 function drawPixelCountdown() {
     const now = new Date();
-    const start = parseDateTime(timeLimitStart);
-    const end = parseDateTime(timeLimitEnd);
+    const start = parseDateTime(timeLimitStart, serverTimezoneOffset);
+    const end = parseDateTime(timeLimitEnd, serverTimezoneOffset);
     
     let text = '';
     let textColor = pixelCountdownColor;

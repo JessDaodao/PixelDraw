@@ -47,7 +47,8 @@ class ServerManager {
                 pixelCountdownColor: config.PIXEL_COUNTDOWN_COLOR,
                 pixelCountdownFontSize: config.PIXEL_COUNTDOWN_FONT_SIZE,
                 pixelCountdownOffsetX: config.PIXEL_COUNTDOWN_OFFSET_X,
-                pixelCountdownOffsetY: config.PIXEL_COUNTDOWN_OFFSET_Y
+                pixelCountdownOffsetY: config.PIXEL_COUNTDOWN_OFFSET_Y,
+                serverTimezoneOffset: new Date().getTimezoneOffset()
             });
         });
         this.app.get('/api/board/status', (req, res) => {
