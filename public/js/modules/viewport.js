@@ -88,8 +88,11 @@ function snapToBounds() {
     let targetOffsetY = state.offsetY;
     let needsSnap = false;
     if (boardWidth < window.innerWidth) {
-        targetOffsetX = (window.innerWidth - boardWidth) / 2;
-        needsSnap = true;
+        const centerX = (window.innerWidth - boardWidth) / 2;
+        if (state.offsetX !== centerX) {
+            targetOffsetX = centerX;
+            needsSnap = true;
+        }
     } else {
         if (state.offsetX > maxOffsetX) {
             targetOffsetX = maxOffsetX;
@@ -100,8 +103,11 @@ function snapToBounds() {
         }
     }
     if (boardHeight < window.innerHeight) {
-        targetOffsetY = (window.innerHeight - boardHeight) / 2;
-        needsSnap = true;
+        const centerY = (window.innerHeight - boardHeight) / 2;
+        if (state.offsetY !== centerY) {
+            targetOffsetY = centerY;
+            needsSnap = true;
+        }
     } else {
         if (state.offsetY > maxOffsetY) {
             targetOffsetY = maxOffsetY;
@@ -112,6 +118,10 @@ function snapToBounds() {
         }
     }
     if (needsSnap) {
+        if (state.inertiaAnimationId) {
+            cancelAnimationFrame(state.inertiaAnimationId);
+            state.inertiaAnimationId = null;
+        }
         const startX = state.offsetX;
         const startY = state.offsetY;
         const startTime = performance.now();
